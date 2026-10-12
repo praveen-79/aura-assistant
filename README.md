@@ -1,6 +1,6 @@
-# Aura — Multilingual AI Voice & Android Automation Assistant
+# Aura v2 — Multilingual AI Voice & Android Automation Assistant
 
-**Aura** is a Siri-like multilingual Android AI Voice & Automation Assistant that understands and speaks in the phone owner's natural language (**Telugu, Tamil, Hindi, Hinglish, Bengali, Marathi, Spanish, and English**), handles natural Indian speech pauses between words, embodies **Moral Values & Strict Privacy Guardrails**, and executes real Android device automations both online (powered by **Gemini 3.8 Flash** & **Gemini 3.8 Live** bidirectional audio) and 100% offline.
+**Aura v2** is a Siri-like multilingual Android AI Voice & Automation Assistant that understands and speaks in the phone owner's natural language (**Telugu, Tamil, Hindi, Hinglish, Bengali, Marathi, Spanish, and English**), handles natural Indian speech pauses between words, embodies **Moral Values & Strict Privacy Guardrails**, and executes real Android device automations both online (powered by **Gemini 3.8 Flash** & **Gemini 3.8 Live** bidirectional audio) and 100% offline.
 
 ---
 
@@ -42,8 +42,8 @@ python -m pytest tests/test_assistant.py -v
 ```
 All **15 automated unit and integration tests** pass out of the box.
 
-### Option C: Install the Compiled Android APK (`AuraAssistant.apk`)
-A pre-built, signed native Android APK is ready at `AuraAssistant.apk` (`app/build/outputs/apk/debug/app-debug.apk`):
+### Option C: Install the Compiled Android APK (`AuraAssistant.apk` — v2.0.0)
+A pre-built, signed native Android APK is ready at `AuraAssistant.apk` (v2.0.0, Play Protect Safe):
 1. **Over Wi-Fi (Easiest — No Cable Needed)**:
    - Open your PC's Wi-Fi URL (shown in **📱 Phone Link**, or `http://<YOUR_PC_IP>:8000/download/AuraAssistant.apk`) on your Android phone and tap **`📲 APK`** to download & install `AuraAssistant.apk`.
 2. **Via USB Cable (1-Click ADB Installer)**:
