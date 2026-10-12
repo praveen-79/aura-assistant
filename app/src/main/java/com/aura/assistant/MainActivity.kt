@@ -187,14 +187,30 @@ class MainActivity : AppCompatActivity() {
         for (alias in aliases) {
             contacts.firstOrNull {
                 val n = it.first.lowercase()
-                n.startsWith(alias) || n.split(" ").any { part -> part == alias }
+                n.length >= 2 && (n.startsWith(alias) || n.split(" ").any { part -> part == alias })
             }?.let { return it }
         }
         // 3. Substring match
         for (alias in aliases) {
             if (alias.length >= 2) {
-                contacts.firstOrNull { it.first.lowercase().contains(alias) }?.let { return it }
+                contacts.firstOrNull { it.first.length >= 2 && it.first.lowercase().contains(alias) }?.let { return it }
             }
+        }
+        // 4. Multi-word token match (e.g., "open and hii babbi" -> matches real contact "Babbi")
+        val stopWords = setOf(
+            "open", "and", "send", "message", "msg", "whatsapp", "vaatsap", "to", "in", "on",
+            "hi", "hii", "hello", "hey", "aura", "please", "call", "dial", "phone", "ki", "ku", "ko", "lo"
+        )
+        val tokens = qLower.split(Regex("[^a-z0-9\\u0C00-\\u0C7F\\u0900-\\u097F]+"))
+            .filter { it.length >= 2 && it !in stopWords }
+        for (tok in tokens.reversed()) {
+            contacts.firstOrNull { it.first.lowercase() == tok }?.let { return it }
+        }
+        for (tok in tokens.reversed()) {
+            contacts.firstOrNull {
+                val n = it.first.lowercase()
+                n.length >= 2 && (n.startsWith(tok) || n.split(" ").any { part -> part == tok })
+            }?.let { return it }
         }
         return null
     }
@@ -455,13 +471,43 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun openExternalReels() {
+            try {
+                val reelsIntent = Intent(Intent.ACTION_VIEW, Uri.parse("instagram://reels_home")).apply {
+                    setPackage("com.instagram.android")
+                }
+                startActivity(reelsIntent)
+                return
+            } catch (e: Exception) {}
+            try {
+                val webReels = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/reels/")).apply {
+                    setPackage("com.instagram.android")
+                }
+                startActivity(webReels)
+                return
+            } catch (e: Exception) {}
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/reels/")))
+            } catch (e: Exception) {}
+        }
+
+        @JavascriptInterface
         fun openApp(appName: String) {
             val key = appName.trim().lowercase()
+            if ("reel" in key || "రీల్" in key) {
+                runOnUiThread {
+                    if (::webView.isInitialized) {
+                        val auto = if ("scroll" in key || "స్క్రోల్" in key) "true" else "false"
+                        webView.evaluateJavascript("if (window.openReelsPlayer) window.openReelsPlayer($auto);", null)
+                    }
+                }
+                return
+            }
             val pkg = when {
                 "whatsapp" in key || "vaatsap" in key || "వాట్సప్" in key || "వాట్సాప్" in key -> "com.whatsapp"
                 "youtube" in key || "యుట్యూబ్" in key || "యూట్యూబ్" in key -> "com.google.android.youtube"
                 "map" in key || "మ్యాప్" in key -> "com.google.android.apps.maps"
-                "insta" in key -> "com.instagram.android"
+                "insta" in key || "ఇన్‌స్టా" in key || "ఇన్స్టా" in key -> "com.instagram.android"
                 "spotify" in key -> "com.spotify.music"
                 "chrome" in key || "browser" in key -> "com.android.chrome"
                 "gmail" in key || "mail" in key -> "com.google.android.gm"
@@ -482,7 +528,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 val resolvedList = packageManager.queryIntentActivities(mainIntent, 0)
                 for (info in resolvedList) {
-                    val label = info.loadLabel(packageManager)?.toString()?.lowercase() ?: ""
+                    val label = info.loadLabel(packageManager).toString().lowercase()
                     val pkgName = info.activityInfo?.packageName?.lowercase() ?: ""
                     if (label == key || label.contains(key) || pkgName.contains(key)) {
                         val launch = packageManager.getLaunchIntentForPackage(info.activityInfo.packageName)

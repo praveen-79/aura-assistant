@@ -1391,6 +1391,13 @@ class AuraGeminiAgent:
             open_match = re.search(pat, lower) or re.search(pat, collapse_stt_gaps(lower))
             if open_match:
                 raw_app = open_match.group(1).strip()
+                wants_scroll = bool(re.search(r"\b(scroll|swipe|next)\b|స్క్రోల్|स्क्रॉल", raw_app))
+                raw_app = re.sub(
+                    r"\s*(?:\band\b|\bmariyu\b|\baur\b|మరియు|और)?\s*(?:auto\s*)?(?:scroll|swipe)(?:\s+(?:down|up|reels|shorts|chey|cheyi|karo))?.*$",
+                    "",
+                    raw_app,
+                    flags=re.IGNORECASE,
+                ).strip()
                 app_map = {
                     "వాట్సప్": "whatsapp",
                     "వాట్సాప్": "whatsapp",
@@ -1412,6 +1419,9 @@ class AuraGeminiAgent:
                     "कैमरा": "camera",
                     "గ్యాలరీ": "gallery",
                     "ఫోటోలు": "photos",
+                    "ఇన్‌స్టాగ్రామ్": "instagram",
+                    "ఇన్స్టాగ్రామ్": "instagram",
+                    "రీల్స్": "instagram reels",
                 }
                 app_name = app_map.get(raw_app, raw_app)
                 for k_indic, v_eng in app_map.items():
@@ -1449,6 +1459,9 @@ class AuraGeminiAgent:
                 executed_tools.append({"name": "open_android_app", "args": {"app_name": app_name}, "result": res})
                 if res.get("client_action"):
                     client_actions.append(res["client_action"])
+                if wants_scroll:
+                    scroll_res = self.automation.scroll_screen("down")
+                    executed_tools.append({"name": "scroll_screen", "args": {"direction": "down", "auto_scroll": True}, "result": scroll_res})
                 return self._finalize_response({
                     "status": "ok",
                     "mode": "offline_smart_engine",
@@ -1561,17 +1574,31 @@ class AuraGeminiAgent:
                     "client_actions": client_actions,
                 })
 
-        # 7d. Hands-Free Screen Scrolling ("scroll down", "neeche scroll karo", "kindaki scroll chey", "scroll up")
-        if "scroll" in lower or "स्क्रॉल" in lower or "స్క్రోల్" in lower or "swipe" in lower:
+        # 7d. Hands-Free Screen & Reels Scrolling ("scroll down", "scroll reels", "next reel", "previous reel", "kindaki scroll chey")
+        if (
+            "scroll" in lower
+            or "स्क्रॉल" in lower
+            or "స్క్రోల్" in lower
+            or "swipe" in lower
+            or "reel" in lower
+            or "రీల్" in lower
+            or "रील" in lower
+        ):
             direction = "down"
-            if any(w in lower for w in ["up", "upar", "ऊपर", "paiki", "పైకి"]):
+            if any(w in lower for w in ["up", "upar", "ऊपर", "paiki", "పైకి", "prev", "previous", "back", "ముందు"]):
                 direction = "up"
             elif any(w in lower for w in ["left", "baye", "बाएं"]):
                 direction = "left"
             elif any(w in lower for w in ["right", "daye", "दाएं"]):
                 direction = "right"
+            is_reels = any(w in lower for w in ["reel", "reels", "రీల్", "రీల్స్", "रील", "shorts"])
+            is_auto = any(w in lower for w in ["auto", "keep", "continuous", "ఆటో"])
             res = self.automation.scroll_screen(direction)
-            executed_tools.append({"name": "scroll_screen", "args": {"direction": direction}, "result": res})
+            executed_tools.append({
+                "name": "scroll_screen",
+                "args": {"direction": direction, "reels": is_reels, "auto_scroll": is_auto},
+                "result": res,
+            })
             return self._finalize_response({
                 "status": "ok",
                 "mode": "offline_smart_engine",
