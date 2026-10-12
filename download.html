@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura AI Assistant APK Download (v1.0.0) — Official Multilingual Android App</title>
+  <link rel="icon" href="/static/icon-192.svg" type="image/svg+xml" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #101114;
+      color: #F5F5F5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .store-card {
+      width: 100%;
+      max-width: 500px;
+      background: #1B1D22;
+      border: 1px solid #34363D;
+      border-radius: 26px;
+      padding: 30px 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.72);
+      position: relative;
+      overflow: hidden;
+    }
+    .store-card::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.18) 0%, rgba(168, 85, 247, 0.12) 50%, transparent 70%);
+      pointer-events: none;
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .app-icon {
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      background: radial-gradient(circle at 35% 35%, #22d3ee, #a855f7, #ec4899);
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 38px;
+      font-weight: 900;
+      flex-shrink: 0;
+      box-shadow: 0 8px 26px rgba(34, 211, 238, 0.35);
+    }
+    .app-title-box h1 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.4px;
+      margin-bottom: 3px;
+      color: #F5F5F5;
+    }
+    .dev-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #A1A4AE;
+      margin-bottom: 4px;
+    }
+    .verified-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, 0.14);
+      color: #22d3ee;
+      border: 1px solid rgba(34, 211, 238, 0.35);
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid #34363D;
+      border-bottom: 1px solid #34363D;
+      padding: 13px 0;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .stat-box {
+      border-right: 1px solid #34363D;
+    }
+    .stat-box:last-child { border-right: none; }
+    .stat-val {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #F5F5F5;
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: #A1A4AE;
+      margin-top: 2px;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 999px;
+      font-size: 14.5px;
+      font-weight: 800;
+      text-decoration: none;
+      margin-bottom: 10px;
+      transition: transform 0.15s, filter 0.15s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn-install {
+      background: linear-gradient(135deg, #22d3ee, #a855f7);
+      color: #05050a;
+      box-shadow: 0 8px 24px rgba(34, 211, 238, 0.32);
+    }
+    .btn-secondary {
+      background: #101114;
+      color: #F5F5F5;
+      border: 1px solid #34363D;
+      font-size: 13.5px;
+      padding: 12px 16px;
+    }
+    .btn-open {
+      background: rgba(34, 211, 238, 0.08);
+      color: #22d3ee;
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      font-size: 13.5px;
+      padding: 12px 16px;
+    }
+    .privacy-badge-card {
+      margin-top: 8px;
+      margin-bottom: 14px;
+      background: rgba(16, 185, 129, 0.09);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 14px;
+      padding: 11px 14px;
+      font-size: 12px;
+      color: #4ade80;
+      line-height: 1.5;
+    }
+    .info-section {
+      margin-top: 14px;
+      background: #101114;
+      border: 1px solid #34363D;
+      border-radius: 16px;
+      padding: 15px;
+      font-size: 12.5px;
+      color: #A1A4AE;
+      line-height: 1.55;
+    }
+    .info-section h3 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #F5F5F5;
+      margin-bottom: 8px;
+    }
+    .info-section ul {
+      list-style-position: inside;
+      margin-left: 2px;
+    }
+    .info-section li {
+      margin-bottom: 6px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #34363D;
+      font-size: 11.5px;
+      color: #A1A4AE;
+    }
+    .meta-grid strong { color: #F5F5F5; display: block; font-size: 12px; }
+    .qr-box {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #34363D;
+      text-align: center;
+      font-size: 12px;
+      color: #A1A4AE;
+    }
+    .qr-box img {
+      margin-top: 10px;
+      width: 130px;
+      height: 130px;
+      border-radius: 14px;
+      padding: 7px;
+      background: #ffffff;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    }
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="store-card">
+    <div class="app-header">
+      <div class="app-icon">🎙️</div>
+      <div class="app-title-box">
+        <h1>Aura AI Assistant</h1>
+        <div class="dev-name">Aura Labs • Multilingual Voice AI</div>
+        <span class="verified-pill">✓ Verified Android APK • Privacy Shield & Indic Edition</span>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val">4.9 ★</div>
+        <div class="stat-lbl">Rating</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">8+ Langs</div>
+        <div class="stat-lbl">Telugu • Hindi • Tamil</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">v1.0.0</div>
+        <div class="stat-lbl">~3.7 MB Signed APK</div>
+      </div>
+    </div>
+
+    <!-- Privacy Shield Guarantee -->
+    <div class="privacy-badge-card">
+      🛡️ <b>100% Local Data & Privacy Shield:</b> Personal contacts, files & photos never leave your device. UPI/payment apps are strictly blocked, on-screen photos cannot be scanned, and Photos/Camera require explicit permission.
+    </div>
+
+    <!-- Primary Direct Android APK Download Button -->
+    <a href="/download/AuraAssistant.apk" download="AuraAssistant.apk" class="btn btn-install" id="primaryApkBtn">
+      ⬇ Download APK v1.0.0 (AuraAssistant.apk)
+    </a>
+
+    <!-- Direct Mirror Download Button -->
+    <a href="./AuraAssistant.apk" download="AuraAssistant.apk" class="btn btn-secondary">
+      📦 Direct Mirror Download (AuraAssistant.apk)
+    </a>
+
+    <!-- Launch Web App / Live Voice Experience -->
+    <a href="/" class="btn btn-open">
+      ▶ Open Web App & Live Voice Orb (Instant Access)
+    </a>
+
+    <div class="info-section">
+      <h3>📲 What's Inside Aura Assistant v1.0.0 (.APK)</h3>
+      <ul>
+        <li><strong>Indian Speech Pause Normalization:</strong> Speak naturally with pauses between words (<em>"Amma ... ki ... call ... chey"</em>). Aura waits and connects all words smoothly.</li>
+        <li><strong>Native Telugu & Indic Speech:</strong> Authentic voice synthesis in Telugu, Hindi, Tamil, Bengali, Marathi, Spanish, and English.</li>
+        <li><strong>Moral Values & Wisdom:</strong> Cultural wisdom (<em>"Matru Devo Bhava, Pitru Devo Bhava"</em>, Satyam, Daya) and refusal of harmful messages.</li>
+        <li><strong>Device Automations:</strong> Direct phone calls, WhatsApp, SMS, alarms, YouTube, Google Maps, battery status, flashlight, screen scroll, and emergency SOS.</li>
+        <li><strong>Dual AI Architecture:</strong> Works 100% offline out-of-the-box, or connects to Google Gemini 3.8 Flash & Live Audio with a free API key.</li>
+      </ul>
+      <div class="meta-grid">
+        <div><strong>Package Name</strong>com.aura.assistant</div>
+        <div><strong>Android Version</strong>Android 8.0+ (API 26–36)</div>
+        <div><strong>File Size</strong>3.76 MB Signed .APK</div>
+        <div><strong>Developer</strong>Aura Autonomous Agent Team</div>
+      </div>
+    </div>
+
+    <div class="qr-box">
+      <div>📱 Scan QR with Phone Camera to Download <strong>AuraAssistant.apk</strong> Directly:</div>
+      <img id="qrImg" alt="Download QR Code" src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=http://192.168.1.30:8000/download/AuraAssistant.apk" />
+    </div>
+
+    <div class="footer-note">
+      Aura AI Assistant • Built with Google Antigravity & FastAPI • 100% Private & Open Source
+    </div>
+  </div>
+
+  <script>
+    // Dynamically configure QR code and download links for localhost or GitHub Pages
+    let apkUrl = `${window.location.origin}/download/AuraAssistant.apk`;
+    if (window.location.hostname.includes('github.io') || window.location.protocol === 'file:') {
+      apkUrl = new URL('AuraAssistant.apk', window.location.href).href;
+    }
+    const qrEl = document.getElementById('qrImg');
+    if (qrEl) {
+      qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(apkUrl)}`;
+    }
+    const btn = document.getElementById('primaryApkBtn');
+    if (btn) btn.href = apkUrl;
+  </script>
+</body>
+</html>

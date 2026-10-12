@@ -1,0 +1,56 @@
+# ============================================================================
+# API Keys, Secrets & Private Credentials (STRICTLY HIDDEN - NEVER COMMITTED)
+# ============================================================================
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.keystore
+*.jks
+release.keystore
+debug.keystore
+
+# Android Local Properties (Contains machine-specific SDK paths)
+local.properties
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+
+# TTS Audio Cache
+tts_cache/
+
+# Android Gradle & Build Outputs
+.gradle/
+build/
+app/build/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio / IntelliJ / VS Code IDE Files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS Temporary Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Temporary Test Files
+*.log
+scratch/

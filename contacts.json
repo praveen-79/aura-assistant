@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Amma (Mom)",
+    "aliases": ["amma", "mom", "mother", "mummy", "maa", "अम्मा", "माँ", "मम्मी", "அம்மா", "అమ్మ", "মা"],
+    "phone": "+919876543210",
+    "relationship": "Mother"
+  },
+  {
+    "name": "Appa (Dad)",
+    "aliases": ["appa", "dad", "father", "papa", "baba", "अप्पा", "पापा", "पिताजी", "அப்பா", "నాన్న", "বাবা"],
+    "phone": "+919876543211",
+    "relationship": "Father"
+  },
+  {
+    "name": "Rahul Sharma",
+    "aliases": ["rahul", "rahul bhai", "sharma ji", "राहुल", "राहुल भाई", "शर्मा जी", "ராகுல்", "రాహుల్"],
+    "phone": "+919811122233",
+    "relationship": "Friend"
+  },
+  {
+    "name": "Priya Patel",
+    "aliases": ["priya", "priya didi", "प्रिया", "प्रिया दीदी", "பிரியா", "ప్రియా"],
+    "phone": "+919822233344",
+    "relationship": "Sister"
+  },
+  {
+    "name": "Emergency Services",
+    "aliases": ["emergency", "police", "ambulance", "help", "पुलिस", "एम्बुलेंस"],
+    "phone": "112",
+    "relationship": "Emergency"
+  }
+]

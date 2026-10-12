@@ -1,0 +1,111 @@
+[
+  {
+    "id": "heading_home",
+    "name": "Heading Home",
+    "triggers": [
+      "heading home",
+      "going home",
+      "on my way home",
+      "main ghar aa raha hoon",
+      "ghar ja raha hoon",
+      "intiki vastunnanu",
+      "nenu intiki vastunnanu",
+      "வீட்டுக்கு கிளம்பிட்டேன்",
+      "ఇంటికి వస్తున్నాను",
+      "నేను ఇంటికి వస్తున్నాను"
+    ],
+    "steps": [
+      {
+        "tool": "send_whatsapp_message",
+        "args": {
+          "contact_name_or_number": "Amma",
+          "message": "I am on my way home!"
+        }
+      },
+      {
+        "tool": "open_android_app",
+        "args": {
+          "app_name": "google maps"
+        }
+      }
+    ],
+    "reply_en": "Running your 'Heading Home' routine: messaging Amma on WhatsApp and opening Google Maps.",
+    "reply_hi": "'घर जा रहा हूँ' रूटीन शुरू: अम्मा को व्हाट्सऐप भेज दिया है और गूगल मैप्स खोल रही हूँ।",
+    "reply_te": "సరే! ఇంటికి వెళ్లే రొటీన్ ప్రారంభించాను: అమ్మ కి వాట్సాప్ మెసేజ్ పంపాను మరియు గూగుల్ మ్యాప్స్ తెరుస్తున్నాను.",
+    "reply_ta": "வீட்டுக்குச் செல்லும் ரொட்டீன் தொடங்கப்பட்டது: அம்மாவுக்கு வாட்ஸ்அப் அனுப்பி கூகுள் மேப்ஸ் திறக்கிறேன்."
+  },
+  {
+    "id": "good_night",
+    "name": "Good Night",
+    "triggers": [
+      "good night",
+      "going to sleep",
+      "bedtime",
+      "shubh ratri",
+      "shubha ratri",
+      "so ja raha hoon",
+      "शुभ रात्रि",
+      "శుభ రాత్రి",
+      "ఇక పడుకుంటున్నాను"
+    ],
+    "steps": [
+      {
+        "tool": "control_device_setting",
+        "args": {
+          "setting": "mute",
+          "action": "on"
+        }
+      },
+      {
+        "tool": "set_alarm_or_timer",
+        "args": {
+          "mode": "alarm",
+          "hour": 7,
+          "minute": 0,
+          "label": "Morning Wake Up"
+        }
+      }
+    ],
+    "reply_en": "Good night! I muted your phone and set your wake-up alarm for 7:00 AM.",
+    "reply_hi": "शुभ रात्रि! मैंने फोन साइलेंट कर दिया है और सुबह 7:00 बजे का अलार्म लगा दिया है।",
+    "reply_te": "శుభ రాత్రి! ఫోన్ సైలెంట్ లో పెట్టాను మరియు ఉదయం 7 గంటలకు అలారం సెట్ చేశాను.",
+    "reply_ta": "இனிய இரவு! போனை சைலன்ட் மோடில் வைத்து காலை 7 மணிக்கு அலாரம் வைத்துள்ளேன்."
+  },
+  {
+    "id": "workout_mode",
+    "name": "Workout Mode",
+    "triggers": [
+      "workout mode",
+      "gym time",
+      "start workout",
+      "exercise time"
+    ],
+    "steps": [
+      {
+        "tool": "control_device_setting",
+        "args": {
+          "setting": "volume_up",
+          "action": "on"
+        }
+      },
+      {
+        "tool": "set_alarm_or_timer",
+        "args": {
+          "mode": "timer",
+          "duration_seconds": 1800,
+          "label": "Workout Session"
+        }
+      },
+      {
+        "tool": "open_android_app",
+        "args": {
+          "app_name": "spotify"
+        }
+      }
+    ],
+    "reply_en": "Workout Mode activated! Turned volume up, started a 30-minute timer, and opened Spotify.",
+    "reply_hi": "वर्कआउट मोड शुरू! आवाज़ बढ़ा दी गई है, 30 मिनट का टाइमर और स्पॉटिफ़ाई चालू कर दिया है।",
+    "reply_te": "వర్కౌట్ మోడ్ ప్రారంభించబడింది! వాల్యూమ్ పెంచాను, 30 నిమిషాల టైమర్ పెట్టి స్పాటిఫై తెరుస్తున్నాను.",
+    "reply_ta": "வொர்க்அவுட் மோட் தொடங்கப்பட்டது! ஒலியை அதிகரித்து, 30 நிமிட டைமர் மற்றும் ஸ்பாட்டிஃபை திறக்கப்பட்டது."
+  }
+]

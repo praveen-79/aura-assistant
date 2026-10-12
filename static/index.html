@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#070913" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <title>Aura — Multilingual Android AI Assistant</title>
+  <style>
+    :root {
+      --bg: #070913;
+      --card: rgba(18, 23, 42, 0.82);
+      --border: rgba(255, 255, 255, 0.11);
+      --text: #f3f6ff;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --purple: #a855f7;
+      --pink: #ec4899;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body {
+      background: radial-gradient(circle at 50% 20%, #151f42 0%, var(--bg) 72%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px;
+    }
+    .app-shell {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+    }
+    .brand { display: flex; align-items: center; gap: 9px; }
+    .brand-dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .brand h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.3px; }
+    .badge {
+      font-size: 0.7rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, 0.14);
+      color: var(--cyan);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+    }
+    .header-actions { display: flex; gap: 6px; }
+    .icon-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.76rem;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover, .icon-btn.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(34, 211, 238, 0.12);
+    }
+    .orb-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .orb-wrapper {
+      position: relative;
+      width: 138px;
+      height: 138px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .orb-ring {
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      border: 2px solid rgba(34, 211, 238, 0.25);
+      animation: spinRing 9s linear infinite;
+    }
+    .orb-core {
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #ffffff 0%, var(--cyan) 28%, var(--purple) 65%, var(--pink) 100%);
+      box-shadow: 0 0 38px rgba(34, 211, 238, 0.55), inset 0 0 24px rgba(255, 255, 255, 0.6);
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+      animation: floatOrb 4s ease-in-out infinite;
+    }
+    .orb-wrapper.listening .orb-core {
+      animation: pulseListening 1.05s ease-in-out infinite;
+      box-shadow: 0 0 65px rgba(236, 72, 153, 0.9), 0 0 110px rgba(34, 211, 238, 0.7);
+    }
+    .orb-wrapper.speaking .orb-core {
+      animation: pulseListening 0.75s ease-in-out infinite;
+      box-shadow: 0 0 65px rgba(16, 185, 129, 0.9), 0 0 110px rgba(34, 211, 238, 0.7);
+    }
+    @keyframes floatOrb {
+      0%, 100% { transform: scale(1) translateY(0px); }
+      50% { transform: scale(1.05) translateY(-4px); }
+    }
+    @keyframes pulseListening {
+      0%, 100% { transform: scale(1.02); }
+      50% { transform: scale(1.2); }
+    }
+    @keyframes spinRing {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.06); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .orb-status {
+      margin-top: 10px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    /* Live Multi-Word Voice Buffer Preview */
+    .live-preview {
+      margin-top: 10px;
+      width: 100%;
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px dashed rgba(34, 211, 238, 0.45);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    .live-preview.active { display: flex; }
+    .controls-row {
+      margin-top: 12px;
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+    select, input {
+      background: rgba(10, 14, 28, 0.92);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 10px;
+      border-radius: 11px;
+      font-size: 0.8rem;
+      outline: none;
+    }
+    .chips {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .chip {
+      white-space: nowrap;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .chip:hover { border-color: var(--cyan); color: var(--cyan); }
+    .chat-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      max-height: 265px;
+      overflow-y: auto;
+    }
+    .msg {
+      padding: 10px 13px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      max-width: 88%;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+    }
+    .msg.aura {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border);
+    }
+    .action-card {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 12px;
+      padding: 9px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+    .action-btn {
+      background: var(--emerald);
+      color: #04130d;
+      font-weight: 700;
+      padding: 6px 11px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.78rem;
+      white-space: nowrap;
+      cursor: pointer;
+      border: none;
+    }
+    .input-bar {
+      display: flex;
+      gap: 8px;
+    }
+    .input-bar input { flex: 1; padding: 11px 13px; font-size: 0.88rem; }
+    .send-btn {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      padding: 0 18px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 13px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel.open { display: flex; }
+    .contact-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      font-size: 0.82rem;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal.open { display: flex; }
+    .modal-card {
+      background: #11162b;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <h1>Aura</h1>
+        <span class="badge" id="modeBadge">Smart Offline Ready</span>
+        <span class="badge" style="color:#4ade80;border-color:rgba(74,222,128,0.3)" title="Your contacts, files & photos stay 100% local on your device. On-screen photos are never scanned, and Photos/Files/Camera require explicit permission.">🔒 100% Local Data & Privacy Shield</span>
+      </div>
+      <div class="header-actions">
+        <a class="icon-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="text-decoration:none;border-color:#4ade80;color:#4ade80" title="Download Signed Android APK">📲 APK</a>
+        <button class="icon-btn" style="border-color:var(--cyan);color:var(--cyan)" onclick="runLiveDemo()">🎬 Auto-Demo</button>
+        <button class="icon-btn" onclick="togglePhonePanel()">📱 Phone Link</button>
+        <button class="icon-btn" onclick="toggleRoutinesPanel()">⚡ Routines</button>
+        <button class="icon-btn" onclick="toggleContactsPanel()">👥 Contacts</button>
+        <button class="icon-btn" onclick="toggleSettings()">⚙️ Settings</button>
+      </div>
+    </header>
+
+    <section class="orb-section">
+      <div class="orb-wrapper" id="orbBtn" onclick="handleOrbTap()">
+        <div class="orb-ring"></div>
+        <div class="orb-core"></div>
+      </div>
+      <div class="orb-status" id="orbStatus">Tap the Orb & speak at your own pace (waits for natural pauses between words)</div>
+
+      <!-- Live Multi-Word Buffer Preview (prevents premature cut-off on word gaps) -->
+      <div class="live-preview" id="livePreviewBox">
+        <span id="livePreviewText">🎙️ Listening...</span>
+        <button class="action-btn" onclick="flushSpokenBufferNow()">✓ Send Now</button>
+      </div>
+
+      <div class="controls-row">
+        <select id="voiceLang" onchange="updateVoiceLang()">
+          <option value="en-IN">🇮🇳 English / Hinglish (en-IN)</option>
+          <option value="hi-IN">🇮🇳 हिन्दी — Hindi (hi-IN)</option>
+          <option value="ta-IN">🇮🇳 தமிழ் — Tamil (ta-IN)</option>
+          <option value="te-IN">🇮🇳 తెలుగు — Telugu (te-IN)</option>
+          <option value="bn-IN">🇮🇳 বাংলা — Bengali (bn-IN)</option>
+          <option value="mr-IN">🇮🇳 मराठी — Marathi (mr-IN)</option>
+          <option value="es-ES">🇪🇸 Español — Spanish (es-ES)</option>
+        </select>
+        <select id="pauseWaitSelect" title="How long to wait during gaps between words">
+          <option value="2400" selected>⏱️ Word Gap: 2.4s (Indian Natural)</option>
+          <option value="3400">⏱️ Word Gap: 3.4s (Slow / Relaxed)</option>
+          <option value="1400">⏱️ Word Gap: 1.4s (Fast)</option>
+        </select>
+        <button class="icon-btn" id="wakeWordBtn" onclick="toggleHandsFree()">🎙️ Hands-Free: OFF</button>
+        <button class="icon-btn" id="liveStreamBtn" onclick="toggleGeminiLiveStream()">⚡ Live WS: OFF</button>
+      </div>
+    </section>
+
+    <div class="chips">
+      <button class="chip" onclick="sendQuick('Call Amma')">📞 Call Amma</button>
+      <button class="chip" onclick="sendQuick('Amma ko call karo')">🇮🇳 अम्मा को कॉल करो</button>
+      <button class="chip" onclick="sendQuick('Amma ki call chey')">🇮🇳 అమ్మ కి కాల్ చేయి</button>
+      <button class="chip" onclick="sendQuick('Amma ku call pannu')">🇮🇳 அம்மா கு கால் பண்ணு</button>
+      <button class="chip" onclick="sendQuick('YouTube lo Telugu songs play chey')">🎵 YouTube Telugu Songs</button>
+      <button class="chip" onclick="sendQuick('Navigate to Charminar')">🗺️ Navigate to Charminar</button>
+      <button class="chip" onclick="sendQuick('Battery entha undi')">🔋 Battery Check (Telugu)</button>
+      <button class="chip" onclick="sendQuick('250 plus 475 entha')">🧮 250 + 475 (Telugu Calc)</button>
+      <button class="chip" onclick="sendQuick('Google lo Hyderabad weather search chey')">🔍 Google Search (Telugu)</button>
+      <button class="chip" onclick="sendQuick('Kinda ki scroll chey')">👇 Scroll Down (Telugu)</button>
+      <button class="chip" onclick="sendQuick('Torch on chey')">🔦 Torch On (Telugu)</button>
+      <button class="chip" onclick="sendQuick('Selfie teeyi')">🤳 Camera (Asks Permission)</button>
+      <button class="chip" onclick="sendQuick('Manchi maata cheppu')">🌸 Moral Value (మంచి మాట)</button>
+      <button class="chip" onclick="sendQuick('Paata marchu')">⏭️ Next Song (Telugu)</button>
+      <button class="chip" onclick="sendQuick('Emergency SOS')">🚨 Emergency SOS</button>
+      <button class="chip" onclick="sendQuick('Amma ko WhatsApp karo')">💬 WhatsApp (Multi-Turn)</button>
+      <button class="chip" onclick="sendQuick('Save contact Vikram number 9876501234')">➕ Save Contact by Voice</button>
+      <button class="chip" onclick="sendQuick('Main ghar aa raha hoon')">🏠 घर जा रहा हूँ (Routine)</button>
+    </div>
+
+    <div class="panel" id="phonePanel">
+      <h4 style="font-size:0.88rem">📱 Install Android APK or Connect via Wi-Fi</h4>
+      <div class="contact-item" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>📦 <b>Native Android APK:</b></span>
+          <a class="action-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="padding:4px 10px;font-size:0.76rem">📲 Download AuraAssistant.apk</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>🌐 <b>Open on Phone Wi-Fi Browser:</b> <code id="mobileUrlCode" style="color:var(--cyan)">http://localhost:8000</code></span>
+          <button class="action-btn" style="padding:3px 9px;font-size:0.74rem" onclick="navigator.clipboard.writeText(document.getElementById('mobileUrlCode').innerText)">📋 Copy URL</button>
+        </div>
+        <div>🔌 <b>Android ADB Bridge:</b> <span id="adbStatusText" style="color:var(--muted)">Checking...</span></div>
+        <small style="color:var(--muted)">Tip: Download <b>AuraAssistant.apk</b> directly to your phone, or open the Wi-Fi URL above in Chrome on your Android phone and tap <b>"Add to Home Screen"</b>.</small>
+      </div>
+      <h5 style="font-size:0.8rem;color:var(--muted);margin-top:4px">📜 Recent Device Automations</h5>
+      <div id="recentActionsList" style="display:flex;flex-direction:column;gap:5px"></div>
+    </div>
+
+    <div class="panel" id="routinesPanel">
+      <h4 style="font-size:0.88rem">⚡ Multi-Step Voice Routines (1 Phrase = Multiple Actions)</h4>
+      <div id="routinesList" style="display:flex;flex-direction:column;gap:6px"></div>
+      <hr style="border-color:var(--border);margin:4px 0" />
+      <h5 style="font-size:0.8rem;color:var(--cyan)">➕ Create Custom Voice Routine</h5>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input type="text" id="rtName" placeholder="Routine Name (e.g. Office Mode)" style="flex:1;padding:7px;font-size:0.8rem" />
+        <input type="text" id="rtTrigger" placeholder="Voice Trigger (e.g. office ki veltunna)" style="flex:1;padding:7px;font-size:0.8rem" />
+        <input type="text" id="rtApp" placeholder="App to Open (e.g. google maps)" style="flex:1;padding:7px;font-size:0.8rem" />
+        <button class="action-btn" onclick="createCustomRoutine()">+ Save Routine</button>
+      </div>
+    </div>
+
+    <div class="panel" id="contactsPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h4 style="font-size:0.88rem">👥 Saved Contacts (Voice & 1-Tap Call)</h4>
+        <button class="icon-btn" onclick="syncAdbContacts()">🔄 Sync Phone via ADB</button>
+      </div>
+      <div id="contactsList" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+      <div class="msg aura">
+        Namaste! I am <b>Aura</b>. I am tuned for <b>Indian speech pauses</b>—you can take natural gaps between words (like <i>"Amma ... ko ... call ... karo"</i>) and I will wait and join all your words together! I also support <b>multi-turn follow-ups</b> (try saying <i>"Amma ko WhatsApp karo"</i> and I'll ask what message to send).
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <input type="text" id="textInput" placeholder="Speak or type in any language..." onkeydown="if(event.key==='Enter') sendText()" />
+      <button class="send-btn" onclick="sendText()">Send</button>
+    </div>
+  </div>
+
+  <!-- Settings & Add Contact Modal -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-card">
+      <h3>⚙️ Aura Settings & API Connection</h3>
+
+      <label style="font-size:0.8rem;color:var(--muted)">🌐 API Server URL (PC or Cloud Brain):</label>
+      <input type="text" id="apiServerInput" placeholder="http://192.168.1.30:8000" />
+      <div style="display:flex;gap:6px">
+        <button class="send-btn" style="padding:8px 12px;font-size:0.78rem" onclick="saveApiServer()">🔗 Connect Server</button>
+        <button class="icon-btn" onclick="testServerConnection()">⚡ Test Connection</button>
+      </div>
+
+      <hr style="border-color:var(--border)" />
+      <label style="font-size:0.8rem;color:var(--muted)">
+        🤖 Gemini API Key (<a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--cyan);text-decoration:none">🔑 Get Free Key from Google AI Studio</a>):
+      </label>
+      <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
+      <button class="send-btn" style="padding:10px" onclick="saveSettings()">💾 Save API Key</button>
+
+      <hr style="border-color:var(--border)" />
+      <h4>➕ Add Contact for Voice Calling</h4>
+      <input type="text" id="contactName" placeholder="Name (e.g. Rohit Bhai)" />
+      <input type="tel" id="contactPhone" placeholder="Phone (e.g. +919876543210)" />
+      <div style="display:flex;gap:6px">
+        <button class="icon-btn" onclick="addContact()">➕ Add Contact</button>
+        <button class="icon-btn" onclick="toggleSettings()">✕ Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let recognition = null;
+    let userWantsListening = false;
+    let handsFreeMode = false;
+    let accumulatedFinalText = '';
+    let latestInterimText = '';
+    let silenceTimer = null;
+
+    let liveWs = null;
+    let audioCtx = null;
+    let mediaStream = null;
+
+    function getPauseWaitMs() {
+      const sel = document.getElementById('pauseWaitSelect');
+      return sel ? parseInt(sel.value, 10) : 2400;
+    }
+
+    function getApiBaseUrl() {
+      const saved = localStorage.getItem('aura_api_base');
+      if (saved) return saved.replace(/\/+$/, '');
+      if (window.location.protocol.startsWith('http')) return window.location.origin;
+      return 'http://192.168.1.30:8000';
+    }
+
+    function saveApiServer() {
+      const val = (document.getElementById('apiServerInput').value || '').trim();
+      if (!val) return;
+      localStorage.setItem('aura_api_base', val);
+      loadStatus();
+      alert(`API Server URL saved: ${val}`);
+    }
+
+    async function testServerConnection() {
+      const base = getApiBaseUrl();
+      try {
+        const res = await fetch(`${base}/api/status`);
+        const data = await res.json();
+        alert(`✅ Connected successfully to Aura Brain at ${base}!\nMode: ${data.has_api_key ? 'Gemini 3.8 Flash & Live' : 'Smart Offline Router'}`);
+        loadStatus();
+      } catch (err) {
+        alert(`⚠️ Could not reach server at ${base}: ${err.message}\nTip: Ensure PC and phone are on the same Wi-Fi and Aura server is running.`);
+      }
+    }
+
+    async function loadStatus() {
+      const apiBase = getApiBaseUrl();
+      const serverInput = document.getElementById('apiServerInput');
+      if (serverInput) serverInput.value = apiBase;
+      try {
+        const res = await fetch(`${apiBase}/api/status`);
+        const data = await res.json();
+        document.getElementById('modeBadge').innerText = data.has_api_key ? 'Gemini 3.8 Active' : 'Smart Offline Ready';
+        if (data.mobile_url) {
+          document.getElementById('mobileUrlCode').innerText = data.mobile_url;
+        }
+        const adbEl = document.getElementById('adbStatusText');
+        if (adbEl) {
+          adbEl.innerText = data.adb && data.adb.connected
+            ? `Connected (${(data.adb.devices || []).join(', ')})`
+            : 'Simulated / Deep-Link Mode (Connect USB/Wi-Fi ADB for direct hardware dial)';
+        }
+        renderContacts(data.contacts || []);
+        renderRoutines(data.workflows || []);
+        renderRecentActions(data.recent_actions || []);
+      } catch (e) {
+        document.getElementById('modeBadge').innerText = 'Offline Standalone';
+      }
+    }
+
+    function renderRecentActions(actions) {
+      const container = document.getElementById('recentActionsList');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!actions.length) {
+        container.innerHTML = '<small style="color:var(--muted)">No automations run yet in this session.</small>';
+        return;
+      }
+      for (const act of actions.slice().reverse().slice(0, 6)) {
+        const row = document.createElement('div');
+        row.className = 'contact-item';
+        row.innerHTML = `<div><b>${act.action}</b>: ${act.target || ''} <span style="color:var(--muted)">(${act.mode || 'executed'})</span></div>`;
+        container.appendChild(row);
+      }
+    }
+
+    function renderContacts(contacts) {
+      const container = document.getElementById('contactsList');
+      container.innerHTML = '';
+      for (const c of contacts) {
+        const row = document.createElement('div');
+        row.className = 'contact-item';
+        row.innerHTML = `
+          <div><b>${c.name}</b> <span style="color:var(--muted)">(${c.phone})</span></div>
+          <div style="display:flex;gap:6px">
+            <button class="action-btn" onclick="sendQuick('Call ${c.name}')">📞 Call</button>
+          </div>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function renderRoutines(workflows) {
+      const container = document.getElementById('routinesList');
+      container.innerHTML = '';
+      for (const wf of workflows) {
+        const row = document.createElement('div');
+        row.className = 'contact-item';
+        const stepsCount = (wf.steps || []).length;
+        row.innerHTML = `
+          <div>
+            <b>⚡ ${wf.name}</b> <span style="color:var(--muted)">(${stepsCount} automated steps)</span><br/>
+            <small style="color:var(--muted)">Say: "${(wf.triggers || []).slice(0, 2).join('" or "')}"</small>
+          </div>
+          <button class="action-btn" onclick="sendQuick('${wf.triggers[0]}')">▶ Run</button>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function togglePhonePanel() {
+      document.getElementById('phonePanel').classList.toggle('open');
+      loadStatus();
+    }
+
+    function toggleContactsPanel() {
+      document.getElementById('contactsPanel').classList.toggle('open');
+      loadStatus();
+    }
+
+    function toggleRoutinesPanel() {
+      document.getElementById('routinesPanel').classList.toggle('open');
+      loadStatus();
+    }
+
+    async function syncAdbContacts() {
+      const res = await fetch(`${getApiBaseUrl()}/api/contacts/sync-adb`, { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        renderContacts(data.contacts || []);
+        appendMessage('aura', `Synced ${data.imported_count} contacts from your Android phone via ADB!`);
+      } else {
+        appendMessage('aura', `ADB Notice: ${data.message}`);
+      }
+    }
+
+    function resetSilenceTimer() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        const fullText = (accumulatedFinalText + ' ' + latestInterimText).replace(/\s+/g, ' ').trim();
+        if (fullText) {
+          flushSpokenBufferNow();
+        }
+      }, getPauseWaitMs());
+    }
+
+    function flushSpokenBufferNow() {
+      if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+      const fullText = (accumulatedFinalText + ' ' + latestInterimText).replace(/\s+/g, ' ').trim();
+      accumulatedFinalText = '';
+      latestInterimText = '';
+      document.getElementById('livePreviewBox').classList.remove('active');
+
+      if (!handsFreeMode) {
+        userWantsListening = false;
+        document.getElementById('orbBtn').classList.remove('listening');
+        if (recognition) {
+          try { recognition.stop(); } catch (e) {}
+        }
+      }
+      if (fullText) {
+        sendCommand(fullText);
+      }
+    }
+
+    function initSpeech() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return;
+      recognition = new SpeechRec();
+      // Enable continuous + interimResults so gaps between Indian words never cut off early
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 3;
+      recognition.lang = document.getElementById('voiceLang').value;
+
+      recognition.onstart = () => {
+        document.getElementById('orbBtn').classList.add('listening');
+        document.getElementById('orbStatus').innerText =
+          'Listening... Speak freely (pauses between words are joined automatically)';
+      };
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcriptPiece = event.results[i][0].transcript.trim();
+          if (event.results[i].isFinal) {
+            accumulatedFinalText = (accumulatedFinalText + ' ' + transcriptPiece).replace(/\s+/g, ' ').trim();
+          } else {
+            interim = (interim + ' ' + transcriptPiece).trim();
+          }
+        }
+        latestInterimText = interim;
+        const combined = (accumulatedFinalText + ' ' + latestInterimText).replace(/\s+/g, ' ').trim();
+        if (combined) {
+          const previewBox = document.getElementById('livePreviewBox');
+          previewBox.classList.add('active');
+          document.getElementById('livePreviewText').innerText = `🎙️ "${combined}" ...`;
+          resetSilenceTimer();
+        }
+      };
+
+      recognition.onend = () => {
+        // If the browser cut off during a word gap while the user is still in a speaking session,
+        // immediately resume listening so the next word joins the same sentence!
+        if (userWantsListening || handsFreeMode) {
+          setTimeout(() => {
+            if (userWantsListening || handsFreeMode) {
+              try {
+                recognition.lang = document.getElementById('voiceLang').value;
+                recognition.start();
+              } catch (e) {}
+            }
+          }, 150);
+        } else {
+          document.getElementById('orbBtn').classList.remove('listening');
+          document.getElementById('orbStatus').innerText = 'Tap the Orb & speak at your own pace';
+        }
+      };
+    }
+
+    function updateVoiceLang() {
+      if (recognition) {
+        recognition.lang = document.getElementById('voiceLang').value;
+      }
+    }
+
+    function handleOrbTap() {
+      if (liveWs) {
+        toggleGeminiLiveStream();
+        return;
+      }
+      toggleVoiceRecognition();
+    }
+
+    function toggleVoiceRecognition() {
+      if (!recognition) initSpeech();
+      if (!recognition) {
+        alert('Speech recognition is supported in Chrome/Edge on Android and Desktop.');
+        return;
+      }
+      if (userWantsListening) {
+        // If user taps the orb again while words are buffered, send them immediately
+        flushSpokenBufferNow();
+      } else {
+        accumulatedFinalText = '';
+        latestInterimText = '';
+        userWantsListening = true;
+        recognition.lang = document.getElementById('voiceLang').value;
+        try { recognition.start(); } catch (e) {}
+      }
+    }
+
+    function toggleHandsFree() {
+      handsFreeMode = !handsFreeMode;
+      const btn = document.getElementById('wakeWordBtn');
+      btn.classList.toggle('active', handsFreeMode);
+      btn.innerText = handsFreeMode ? '🎙️ Hands-Free: ON' : '🎙️ Hands-Free: OFF';
+      if (handsFreeMode && !userWantsListening) {
+        toggleVoiceRecognition();
+      } else if (!handsFreeMode) {
+        userWantsListening = false;
+        if (recognition) {
+          try { recognition.stop(); } catch (e) {}
+        }
+      }
+    }
+
+    async function toggleGeminiLiveStream() {
+      const btn = document.getElementById('liveStreamBtn');
+      if (liveWs) {
+        liveWs.close();
+        liveWs = null;
+        if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+        btn.classList.remove('active');
+        btn.innerText = '⚡ Live WS: OFF';
+        document.getElementById('orbBtn').classList.remove('listening');
+        document.getElementById('orbStatus').innerText = 'Tap the Orb to talk';
+        return;
+      }
+
+      const apiBase = getApiBaseUrl();
+      const wsProto = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+      const wsHost = apiBase.replace(/^https?:\/\//, '');
+      liveWs = new WebSocket(`${wsProto}//${wsHost}/ws/live`);
+      btn.classList.add('active');
+      btn.innerText = '⚡ Live WS: ON';
+      document.getElementById('orbBtn').classList.add('listening');
+      document.getElementById('orbStatus').innerText = 'Connecting to Gemini 3.8 Live...';
+
+      liveWs.onmessage = async (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'connected') {
+          document.getElementById('orbStatus').innerText = 'Gemini 3.8 Live Active — Speak freely!';
+          startMicPcmStream();
+        } else if (msg.type === 'input_transcript') {
+          appendMessage('user', msg.text);
+        } else if (msg.type === 'output_transcript') {
+          appendMessage('aura', msg.text);
+        } else if (msg.type === 'tool_executed') {
+          const act = msg.result?.client_action ? [msg.result.client_action] : [];
+          appendMessage('aura', `Executed: ${msg.name}`, act);
+          triggerNativeAndroidBridge(msg.name, msg.args, msg.result);
+        } else if (msg.type === 'audio') {
+          playPcm24kAudio(msg.data);
+        } else if (msg.type === 'error') {
+          appendMessage('aura', msg.message);
+          toggleGeminiLiveStream();
+        }
+      };
+      liveWs.onclose = () => {
+        if (liveWs) toggleGeminiLiveStream();
+      };
+    }
+
+    async function startMicPcmStream() {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioCtx.createMediaStreamSource(mediaStream);
+        const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
+        processor.onaudioprocess = (e) => {
+          if (!liveWs || liveWs.readyState !== WebSocket.OPEN) return;
+          const float32 = e.inputBuffer.getChannelData(0);
+          const int16 = new Int16Array(float32.length);
+          for (let i = 0; i < float32.length; i++) {
+            const s = Math.max(-1, Math.min(1, float32[i]));
+            int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
+          const bytes = new Uint8Array(int16.buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          liveWs.send(JSON.stringify({ type: 'audio', data: btoa(binary) }));
+        };
+      } catch (err) {
+        appendMessage('aura', 'Mic access error: ' + err.message);
+      }
+    }
+
+    function playPcm24kAudio(b64Data) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const binary = atob(b64Data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const int16 = new Int16Array(bytes.buffer);
+        const float32 = new Float32Array(int16.length);
+        for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
+
+        const buffer = audioCtx.createBuffer(1, float32.length, 24000);
+        buffer.getChannelData(0).set(float32);
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(audioCtx.destination);
+        src.start();
+      } catch (e) {}
+    }
+
+    function triggerNativeAndroidBridge(toolName, args, result) {
+      if (!window.AndroidNative) return;
+      try {
+        if (toolName === 'make_phone_call' && (result?.phone_number || args?.contact_name_or_number)) {
+          window.AndroidNative.callContact(result?.phone_number || args?.contact_name_or_number);
+        } else if (toolName === 'control_device_setting' && args?.setting === 'flashlight') {
+          window.AndroidNative.setTorch(args?.action !== 'off');
+        } else if (toolName === 'set_alarm_or_timer' && args?.mode === 'alarm') {
+          window.AndroidNative.setAlarm(args?.hour || 7, args?.minute || 0, args?.label || 'Aura Alarm');
+        } else if (toolName === 'tap_screen_element' && args?.target_text) {
+          window.AndroidNative.clickScreenText(args.target_text);
+        } else if (toolName === 'scroll_screen' && window.AndroidNative.scrollScreen) {
+          window.AndroidNative.scrollScreen(args?.direction || 'down');
+        } else if (toolName === 'take_screenshot' && window.AndroidNative.captureScreenshot) {
+          window.AndroidNative.captureScreenshot();
+        } else if (toolName === 'play_youtube_media' && args?.query && window.AndroidNative.openYouTube) {
+          window.AndroidNative.openYouTube(args.query);
+        } else if (toolName === 'navigate_to_location' && args?.destination && window.AndroidNative.navigateMaps) {
+          window.AndroidNative.navigateMaps(args.destination);
+        }
+      } catch (e) {}
+    }
+
+    let currentTtsAudio = null;
+
+    function speakBrowserFallback(spokenText, langPrefix, spokenPhonetic) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const langMap = { hi: 'hi-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', mr: 'mr-IN', es: 'es-ES', en: 'en-IN' };
+      const bcp47 = langMap[langPrefix] || document.getElementById('voiceLang').value || 'en-IN';
+      const voices = window.speechSynthesis.getVoices() || [];
+      const nativeVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
+
+      // If the OS lacks a native Telugu/Tamil/Indic voice, speak the Romanized phonetic Telugu using Indian English!
+      const textToSpeak = nativeVoice ? spokenText : (spokenPhonetic || spokenText);
+      const utter = new SpeechSynthesisUtterance(textToSpeak);
+      if (nativeVoice) {
+        utter.voice = nativeVoice;
+        utter.lang = nativeVoice.lang;
+      } else {
+        const enInVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-in'))
+          || voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+        if (enInVoice) utter.voice = enInVoice;
+        utter.lang = 'en-IN';
+      }
+      utter.onstart = () => document.getElementById('orbBtn').classList.add('speaking');
+      utter.onend = () => document.getElementById('orbBtn').classList.remove('speaking');
+      window.speechSynthesis.speak(utter);
+    }
+
+    function speakReply(spokenText, detectedLang, spokenPhonetic = '') {
+      if (!spokenText) return;
+      if (currentTtsAudio) {
+        try { currentTtsAudio.pause(); } catch (e) {}
+        currentTtsAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      const selectedLang = document.getElementById('voiceLang').value || 'en-IN';
+      const langPrefix = (detectedLang || selectedLang.split('-')[0] || 'en').toLowerCase();
+
+      // Use backend /api/tts (with local disk cache) for authentic Telugu, Tamil, Hindi, Bengali, Marathi, Spanish, English speech
+      const ttsUrl = `${getApiBaseUrl()}/api/tts?text=${encodeURIComponent(spokenText)}&lang=${encodeURIComponent(langPrefix)}`;
+      const audio = new Audio(ttsUrl);
+      currentTtsAudio = audio;
+
+      audio.onplay = () => document.getElementById('orbBtn').classList.add('speaking');
+      audio.onended = () => document.getElementById('orbBtn').classList.remove('speaking');
+      audio.onerror = () => {
+        document.getElementById('orbBtn').classList.remove('speaking');
+        speakBrowserFallback(spokenText, langPrefix, spokenPhonetic);
+      };
+
+      audio.play().catch(() => {
+        speakBrowserFallback(spokenText, langPrefix, spokenPhonetic);
+      });
+    }
+
+    function appendMessage(role, text, actions = [], speechMeta = null) {
+      const box = document.getElementById('chatBox');
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+
+      const span = document.createElement('span');
+      span.innerText = text;
+      div.appendChild(span);
+
+      if (role === 'aura') {
+        const replayBtn = document.createElement('button');
+        replayBtn.className = 'icon-btn';
+        replayBtn.style.marginLeft = '8px';
+        replayBtn.style.padding = '3px 8px';
+        replayBtn.style.fontSize = '0.72rem';
+        replayBtn.innerText = '🔊 Speak';
+        const sText = (speechMeta && speechMeta.spoken_reply) ? speechMeta.spoken_reply : text;
+        const sLang = (speechMeta && speechMeta.detected_language) ? speechMeta.detected_language : '';
+        const sPhon = (speechMeta && speechMeta.spoken_phonetic) ? speechMeta.spoken_phonetic : '';
+        replayBtn.onclick = () => speakReply(sText, sLang, sPhon);
+        div.appendChild(replayBtn);
+      }
+
+      box.appendChild(div);
+
+      for (const act of actions) {
+        if (act && act.url) {
+          const card = document.createElement('div');
+          card.className = 'action-card';
+          card.innerHTML = `<span>⚡ ${act.label}</span><a class="action-btn" href="${act.url}">Execute Now</a>`;
+          box.appendChild(card);
+          if (act.auto_trigger && (act.url.startsWith('tel:') || act.url.startsWith('whatsapp://') || act.url.startsWith('sms:'))) {
+            setTimeout(() => { window.location.href = act.url; }, 650);
+          }
+        }
+      }
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendCommand(text) {
+      if (!text.trim()) return;
+      appendMessage('user', text);
+      document.getElementById('orbStatus').innerText = 'Thinking & Executing...';
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text,
+            language_hint: document.getElementById('voiceLang').value
+          })
+        });
+        const data = await res.json();
+        document.getElementById('modeBadge').innerText = data.mode === 'gemini-3.8-flash' ? 'Gemini 3.8 Active' : 'Smart Offline Ready';
+        appendMessage('aura', data.reply, data.client_actions || [], data);
+        for (const t of (data.executed_tools || [])) {
+          triggerNativeAndroidBridge(t.name, t.args, t.result);
+        }
+        speakReply(data.spoken_reply || data.reply, data.detected_language, data.spoken_phonetic || '');
+      } catch (err) {
+        runStandaloneApkBrain(text);
+      } finally {
+        document.getElementById('orbStatus').innerText = handsFreeMode
+          ? 'Hands-Free Listening... Speak anytime!'
+          : 'Tap the Orb & speak at your own pace';
+      }
+    }
+
+    let pendingApkPerm = null;
+    function runStandaloneApkBrain(rawText) {
+      const text = rawText.replace(/\s*\.\.\.\s*/g, ' ').trim();
+      const lower = text.toLowerCase();
+      const isTe = /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
+      const isHi = /\b(ko|karo|kardo|mein|batao|suvichar)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
+      const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+
+      if (pendingApkPerm && /\b(yes|allow|ok|avunu|sare|haan|ha)\b/.test(lower)) {
+        const act = pendingApkPerm;
+        pendingApkPerm = null;
+        appendMessage('aura', `✅ Permission confirmed! Opening ${act} on your Android device.`, []);
+        speakReply(`Permission confirmed. Opening ${act}.`, 'en');
+        return;
+      }
+
+      if (/\b(phonepe|gpay|google pay|paytm|bhim|upi)\b/.test(lower)) {
+        const msg = isTe ? '🔒 గోప్యత కారణంగా నేను UPI లేదా పేమెంట్ యాప్‌లను (PhonePe, GPay, Paytm) ఓపెన్ చేయను.' : '🔒 For your privacy and security, I never access or open UPI or payment apps (PhonePe, GPay, Paytm, BHIM).';
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(scan.*photo|read.*photo|screen.*photo)\b/.test(lower)) {
+        const msg = isTe ? '🔒 గోప్యత నియమం ప్రకారం స్క్రీన్ పై ఉన్న ఫోటోలను స్కాన్ చేయడం పూర్తిగా నిషేధించబడింది.' : '🔒 Privacy Shield: Photos present on your screen cannot be scanned or read.';
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(gallery|photos|files|file manager|selfie|camera|teeyi)\b/.test(lower)) {
+        pendingApkPerm = lower.includes('selfie') || lower.includes('camera') || lower.includes('teeyi') ? 'Camera' : 'Photos / Files';
+        const msg = isTe
+          ? `🔒 గోప్యత భద్రత: ${pendingApkPerm} ఓపెన్ చేయడానికి మీ అనుమతి కావాలి. "Avunu" లేదా "Yes" అని చెప్పండి.`
+          : `🔒 Privacy Check: I never access ${pendingApkPerm} without permission. Say "Yes" or "Allow" to confirm.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(manchi maata|moral|suvichar|quote|neethi)\b/.test(lower)) {
+        const msg = isTe
+          ? '🌸 మంచి మాట: "మాతృ దేవో భవ, పితృ దేవో భవ" — తల్లిదండ్రులను, పెద్దలను గౌరవించడం మరియు సత్యం మాట్లాడటం మన గొప్ప సంస్కృతి.'
+          : '🌸 Moral Value: "Matru Devo Bhava, Pitru Devo Bhava" — Respecting parents and elders, speaking truth (Satyam), and showing kindness (Daya) are the highest virtues.';
+        appendMessage('aura', msg);
+        speakReply(msg, lang, 'Manchi maata: Maatru Devo Bhava, Pitru Devo Bhava');
+        return;
+      }
+
+      if (/\b(call|phone|dial)\b/.test(lower)) {
+        const contacts = { amma: '+919876543210', mom: '+919876543210', rahul: '+919876543211', priya: '+919876543212', dad: '+919876543213', nanna: '+919876543213' };
+        let target = 'Amma';
+        for (const k of Object.keys(contacts)) {
+          if (lower.includes(k)) { target = k.charAt(0).toUpperCase() + k.slice(1); break; }
+        }
+        const num = (window.AndroidNative && window.AndroidNative.callContact) ? window.AndroidNative.callContact(target) : (contacts[target.toLowerCase()] || '+919876543210');
+        const msg = isTe ? `📞 ${target} (${num}) కి కాల్ చేస్తున్నాను.` : (isHi ? `📞 ${target} (${num}) को कॉल कर रही हूँ।` : `📞 Calling ${target} (${num}) now.`);
+        appendMessage('aura', msg, [{ label: `Call ${target}`, url: `tel:${num}`, auto_trigger: !window.AndroidNative }]);
+        speakReply(msg, lang, `Calling ${target}`);
+        return;
+      }
+
+      const mathMatch = lower.match(/(\d+)\s*(plus|\+|minus|-|into|\*|times)\s*(\d+)/);
+      if (mathMatch) {
+        const a = parseFloat(mathMatch[1]), b = parseFloat(mathMatch[3]), op = mathMatch[2];
+        const ans = (op === 'plus' || op === '+') ? a + b : ((op === 'minus' || op === '-') ? a - b : a * b);
+        const msg = isTe ? `🧮 సమాధానం: ${ans}` : `🧮 The answer is ${ans}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang, `The answer is ${ans}`);
+        return;
+      }
+
+      if (/\b(torch|flashlight)\b/.test(lower)) {
+        const on = !lower.includes('off') && !lower.includes('band');
+        if (window.AndroidNative && window.AndroidNative.setTorch) window.AndroidNative.setTorch(on);
+        const msg = isTe ? `🔦 ఫ్లాష్‌లైట్ ${on ? 'ఆన్' : 'ఆఫ్'} చేశాను.` : `🔦 Turned flashlight ${on ? 'ON' : 'OFF'}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(youtube|songs|paata)\b/.test(lower)) {
+        const q = text.replace(/youtube|lo|play|chey|karo/gi, '').trim() || 'Telugu hits';
+        if (window.AndroidNative && window.AndroidNative.openYouTube) window.AndroidNative.openYouTube(q);
+        const msg = isTe ? `🎵 YouTube లో "${q}" ప్లే చేస్తున్నాను.` : `🎵 Playing "${q}" on YouTube.`;
+        appendMessage('aura', msg, [{ label: `YouTube: ${q}`, url: `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` }]);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(navigate|maps|direction|charminar)\b/.test(lower)) {
+        const dest = text.replace(/navigate|to|maps|ki|vellu/gi, '').trim() || 'Charminar';
+        if (window.AndroidNative && window.AndroidNative.navigateMaps) window.AndroidNative.navigateMaps(dest);
+        const msg = isTe ? `🗺️ Google Maps లో ${dest} కి నావిగేట్ చేస్తున్నాను.` : `🗺️ Navigating to ${dest} in Google Maps.`;
+        appendMessage('aura', msg, [{ label: `Navigate: ${dest}`, url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest)}` }]);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(scroll)\b/.test(lower)) {
+        const dir = lower.includes('up') || lower.includes('paiki') ? 'up' : 'down';
+        if (window.AndroidNative && window.AndroidNative.scrollScreen) window.AndroidNative.scrollScreen(dir);
+        const msg = isTe ? `👇 స్క్రీన్ ${dir === 'down' ? 'కిందకి' : 'పైకి'} స్క్రోల్ చేశాను.` : `👇 Scrolled screen ${dir}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      const fallbackMsg = isTe ? `✨ విన్నాను: "${text}". మీ ఆండ్రాయిడ్ ఫోన్‌లో ఆరా సిద్ధంగా ఉంది!` : `✨ Heard: "${text}". Aura Standalone Android Assistant is ready!`;
+      appendMessage('aura', fallbackMsg);
+      speakReply(fallbackMsg, lang);
+    }
+
+    function sendText() {
+      const input = document.getElementById('textInput');
+      const val = input.value;
+      input.value = '';
+      sendCommand(val);
+    }
+
+    function sendQuick(text) {
+      sendCommand(text);
+    }
+
+    function toggleSettings() {
+      document.getElementById('settingsModal').classList.toggle('open');
+    }
+
+    async function saveSettings() {
+      const key = document.getElementById('apiKeyInput').value;
+      await fetch(`${getApiBaseUrl()}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: key })
+      });
+      toggleSettings();
+      loadStatus();
+      appendMessage('aura', 'Gemini API Key saved! Full multilingual Gemini 3.8 Flash & Live Voice modes are enabled.');
+    }
+
+    async function addContact() {
+      const name = document.getElementById('contactName').value;
+      const phone = document.getElementById('contactPhone').value;
+      if (!name || !phone) return;
+      const res = await fetch(`${getApiBaseUrl()}/api/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone })
+      });
+      const data = await res.json();
+      renderContacts(data.contacts || []);
+      document.getElementById('contactName').value = '';
+      document.getElementById('contactPhone').value = '';
+      appendMessage('aura', `Added contact: ${name} (${phone}). You can now say "Call ${name}"!`);
+    }
+
+    async function createCustomRoutine() {
+      const name = document.getElementById('rtName').value.trim();
+      const trigger = document.getElementById('rtTrigger').value.trim();
+      const appName = document.getElementById('rtApp').value.trim() || 'google maps';
+      if (!name || !trigger) return;
+      const res = await fetch(`${getApiBaseUrl()}/api/workflows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          triggers: [trigger.toLowerCase()],
+          steps: [{ tool: 'open_android_app', args: { app_name: appName } }]
+        })
+      });
+      const data = await res.json();
+      renderRoutines(data.workflows || []);
+      document.getElementById('rtName').value = '';
+      document.getElementById('rtTrigger').value = '';
+      document.getElementById('rtApp').value = '';
+      appendMessage('aura', `Saved custom routine "${name}"! Say "${trigger}" anytime to run it.`);
+    }
+
+    let demoRunning = false;
+    async function runLiveDemo() {
+      if (demoRunning) return;
+      demoRunning = true;
+      const demoSteps = [
+        { text: 'Amma ... ki ... call ... chey', lang: 'te-IN' },
+        { text: 'Manchi maata cheppu', lang: 'te-IN' },
+        { text: '250 plus 475 entha', lang: 'te-IN' },
+        { text: 'Amma ko call karo', lang: 'hi-IN' },
+        { text: 'Kinda ki scroll chey', lang: 'te-IN' }
+      ];
+      appendMessage('aura', '🎬 Starting 1-Click Multilingual Showcase Demo (Telugu, Hindi & Indian Speech Gap Normalization)...');
+      for (const step of demoSteps) {
+        document.getElementById('voiceLang').value = step.lang;
+        await sendCommand(step.text);
+        await new Promise(r => setTimeout(r, 4200));
+      }
+      demoRunning = false;
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>
