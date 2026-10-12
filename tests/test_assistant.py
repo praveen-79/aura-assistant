@@ -385,4 +385,45 @@ def test_real_phone_contacts_bulk_sync_and_telugu_script_app_open(tmp_path):
     assert any(t["name"] == "open_android_app" and t["args"]["app_name"] == "whatsapp" for t in wa_data["executed_tools"])
 
 
+def test_whatsapp_multiturn_and_select_commands(tmp_path):
+    cm = ContactManager(tmp_path / "contacts.json")
+    cm.add_contact("Amma", "+919440112233", aliases=["amma", "mom", "అమ్మ"])
+    engine = AndroidAutomationEngine(cm)
+    agent = AuraGeminiAgent(engine, api_key="")
+
+    # 1. "send message in whatsapp" -> asks who -> "Amma" -> asks message -> "Coming home" -> sends!
+    step1 = agent.chat_with_tools("send message in whatsapp")
+    assert len(step1["executed_tools"]) == 0
+    assert agent.pending_intent is not None
+    assert agent.pending_intent["type"] == "whatsapp_who"
+
+    step2 = agent.chat_with_tools("Amma")
+    assert len(step2["executed_tools"]) == 0
+    assert agent.pending_intent is not None
+    assert agent.pending_intent["type"] == "whatsapp_msg"
+
+    step3 = agent.chat_with_tools("I am coming home in 10 minutes")
+    assert len(step3["executed_tools"]) == 1
+    assert step3["executed_tools"][0]["name"] == "send_whatsapp_message"
+    assert step3["executed_tools"][0]["result"]["phone_number"] == "+919440112233"
+
+    # 2. "send message to Amma in whatsapp" -> asks message -> sends!
+    s1 = agent.chat_with_tools("send message to Amma in whatsapp")
+    assert len(s1["executed_tools"]) == 0
+    assert agent.pending_intent is not None
+    assert agent.pending_intent["type"] == "whatsapp_msg"
+
+    s2 = agent.chat_with_tools("Good morning Amma")
+    assert len(s2["executed_tools"]) == 1
+    assert s2["executed_tools"][0]["name"] == "send_whatsapp_message"
+
+    # 3. "select Telugu" & "తెలుగు సెలెక్ట్ చేయి" -> executes tap_screen_element
+    sel_en = agent.chat_with_tools("select Telugu")
+    assert any(t["name"] == "tap_screen_element" and "telugu" in t["args"]["target_text"].lower() for t in sel_en["executed_tools"])
+
+    sel_te = agent.chat_with_tools("తెలుగు సెలెక్ట్ చేయి")
+    assert any(t["name"] == "tap_screen_element" for t in sel_te["executed_tools"])
+
+
+
 

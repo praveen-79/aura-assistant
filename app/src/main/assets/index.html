@@ -680,10 +680,12 @@
       for (const c of contacts.slice(0, 60)) {
         const row = document.createElement('div');
         row.className = 'contact-item';
+        const safeName = String(c.name || '').replace(/'/g, "\\'");
         row.innerHTML = `
           <div><b>${c.name}</b> <span style="color:var(--muted)">(${c.phone})</span></div>
           <div style="display:flex;gap:6px">
-            <button class="action-btn" onclick="sendQuick('Call ${c.name}')">📞 Call</button>
+            <button class="action-btn" onclick="sendQuick('Call ${safeName}')">📞 Call</button>
+            <button class="action-btn" style="background:rgba(37,211,102,0.18);border-color:#25d366;color:#25d366" onclick="sendQuick('Send message to ${safeName} in WhatsApp')">💬 WhatsApp</button>
           </div>
         `;
         container.appendChild(row);
@@ -969,9 +971,217 @@
       } catch (e) {}
     }
 
+    window._skipNextBottomScroll = false;
+
+    window.performSmartScroll = function(direction) {
+      const dir = String(direction || 'down').toLowerCase();
+      const chatBox = document.getElementById('chatBox');
+      const openPanels = Array.from(document.querySelectorAll('.panel.open'));
+      const deltaY = dir === 'up' ? -360 : (dir === 'down' ? 360 : 0);
+      const deltaX = dir === 'left' ? -260 : (dir === 'right' ? 260 : 0);
+
+      if (dir === 'up') {
+        window._skipNextBottomScroll = true;
+      }
+
+      const doScroll = () => {
+        if (deltaY !== 0) {
+          for (const p of openPanels) {
+            if (p.scrollHeight > p.clientHeight) {
+              p.scrollBy({ top: deltaY, behavior: 'smooth' });
+            }
+          }
+          if (chatBox && chatBox.scrollHeight > chatBox.clientHeight) {
+            chatBox.scrollBy({ top: deltaY, behavior: 'smooth' });
+          }
+          window.scrollBy({ top: deltaY, behavior: 'smooth' });
+        }
+        if (deltaX !== 0) {
+          const chips = document.querySelector('.chips');
+          if (chips) chips.scrollBy({ left: deltaX, behavior: 'smooth' });
+          window.scrollBy({ left: deltaX, behavior: 'smooth' });
+        }
+      };
+
+      doScroll();
+      setTimeout(doScroll, 120);
+      return true;
+    };
+
+    window.performSmartSelect = function(targetText) {
+      const raw = String(targetText || '').trim();
+      if (!raw) return { matched: false, label: '' };
+      const q = raw.toLowerCase();
+
+      // 1. Check if selecting a voice language
+      const langSelect = document.getElementById('voiceLang');
+      if (langSelect) {
+        const langMap = [
+          { keys: ['telugu', 'తెలుగు', 'te-in'], val: 'te-IN', name: 'Telugu (తెలుగు)' },
+          { keys: ['hindi', 'हिन्दी', 'हिंदी', 'hi-in'], val: 'hi-IN', name: 'Hindi (हिन्दी)' },
+          { keys: ['tamil', 'தமிழ்', 'ta-in'], val: 'ta-IN', name: 'Tamil (தமிழ்)' },
+          { keys: ['bengali', 'বাংলা', 'bn-in'], val: 'bn-IN', name: 'Bengali (বাংলা)' },
+          { keys: ['marathi', 'मराठी', 'mr-in'], val: 'mr-IN', name: 'Marathi (मराठी)' },
+          { keys: ['spanish', 'español', 'es-es'], val: 'es-ES', name: 'Spanish (Español)' },
+          { keys: ['english', 'ఇంగ్లీష్', 'अंग्रेजी', 'en-in'], val: 'en-IN', name: 'English (India)' }
+        ];
+        for (const l of langMap) {
+          if (l.keys.some(k => q.includes(k))) {
+            langSelect.value = l.val;
+            langSelect.dispatchEvent(new Event('change'));
+            langSelect.style.outline = '2px solid #00f5d4';
+            setTimeout(() => { langSelect.style.outline = ''; }, 1500);
+            return { matched: true, label: l.name };
+          }
+        }
+      }
+
+      // 2. Check if selecting/opening a built-in panel
+      if (q.includes('permission') || q.includes('contact') || q.includes('కాంటాక్ట్') || q.includes('అనుమతి')) {
+        togglePanel('permPanel');
+        return { matched: true, label: 'Permissions & Real Contacts' };
+      }
+      if (q.includes('routine') || q.includes('రొటీన్')) {
+        togglePanel('routinePanel');
+        return { matched: true, label: 'Routines Panel' };
+      }
+      if (q.includes('key') || q.includes('api') || q.includes('setting') || q.includes('సెట్టింగ్')) {
+        togglePanel('keyPanel');
+        return { matched: true, label: 'API Key & Server Settings' };
+      }
+      if (q.includes('hands-free') || q.includes('hands free') || q.includes('హ్యాండ్స్ ఫ్రీ')) {
+        toggleHandsFree();
+        return { matched: true, label: 'Hands-Free Mode' };
+      }
+
+      // 3. Search all interactive DOM elements (buttons, chips, links, action cards, contacts)
+      const candidates = Array.from(document.querySelectorAll('button, a, .chip, .icon-btn, .action-btn, [onclick], label, select'));
+      let bestEl = null;
+      let bestScore = 0;
+
+      for (const el of candidates) {
+        const text = (el.innerText || el.textContent || el.getAttribute('aria-label') || el.title || '').trim();
+        if (!text) continue;
+        const tLow = text.toLowerCase();
+        let score = 0;
+        if (tLow === q) score = 100;
+        else if (tLow.includes(q)) score = 80;
+        else if (q.split(/\s+/).filter(Boolean).some(w => w.length > 2 && tLow.includes(w))) score = 50;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestEl = el;
+        }
+      }
+
+      if (bestEl) {
+        bestEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const origOutline = bestEl.style.outline;
+        const origTransform = bestEl.style.transform;
+        bestEl.style.outline = '2px solid #00f5d4';
+        bestEl.style.transform = 'scale(1.04)';
+        setTimeout(() => {
+          bestEl.style.outline = origOutline;
+          bestEl.style.transform = origTransform;
+        }, 1400);
+        bestEl.click();
+        return { matched: true, label: (bestEl.innerText || bestEl.textContent || raw).trim() };
+      }
+
+      return { matched: false, label: raw };
+    };
+
+    function executeWhatsAppSend(targetName, messageText, isTe, isHi, lang) {
+      const cleanTarget = String(targetName || '').trim();
+      const cleanMsg = String(messageText || 'Hello').trim();
+
+      // 1. Native Android APK Bridge (uses phone's real ContactsContract)
+      if (window.AndroidNative && window.AndroidNative.sendWhatsApp) {
+        const res = String(window.AndroidNative.sendWhatsApp(cleanTarget, cleanMsg) || '');
+        if (res.startsWith('FOUND:')) {
+          const parts = res.slice(6).split('|');
+          const cName = parts[0] || cleanTarget;
+          const cNum = parts[1] || '';
+          const digits = cNum.replace(/\D/g, '');
+          const waPhone = digits.length === 10 ? '91' + digits : digits;
+          const waUrl = `https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(cleanMsg)}`;
+          const msg = isTe
+            ? `💬 మీ ఫోన్ కాంటాక్ట్స్ నుండి ${cName} (${cNum}) కి వాట్సప్ మెసేజ్ సిద్ధం చేశాను: "${cleanMsg}"`
+            : (isHi
+              ? `💬 आपके फोन कॉन्टैक्ट्स से ${cName} (${cNum}) को व्हाट्सऐप संदेश भेजा जा रहा है: "${cleanMsg}"`
+              : `💬 Opening WhatsApp chat with ${cName} (${cNum}) with message: "${cleanMsg}"`);
+          appendMessage('aura', msg, [{ label: `WhatsApp ${cName}`, url: waUrl, auto_trigger: false }]);
+          speakReply(msg, lang, `Opening WhatsApp chat with ${cName}`);
+          return;
+        } else {
+          const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(cleanMsg)}`;
+          const msg = isTe
+            ? `💬 వాట్సప్‌లో "${cleanMsg}" మెసేజ్ సిద్ధం చేశాను. మీ కాంటాక్ట్ (${cleanTarget}) ని ఎంచుకోండి.`
+            : `💬 Prepared WhatsApp message "${cleanMsg}". Select "${cleanTarget}" in WhatsApp to send.`;
+          appendMessage('aura', msg, [{ label: `Send in WhatsApp`, url: waUrl, auto_trigger: false }]);
+          speakReply(msg, lang, `Opening WhatsApp with your message`);
+          return;
+        }
+      }
+
+      // 2. Web Browser: Lookup in synced realPhoneContacts
+      const realList = window.realPhoneContacts || [];
+      const tLow = cleanTarget.toLowerCase();
+      const foundReal = cleanTarget
+        ? realList.find(c => c.name && (c.name.toLowerCase() === tLow || c.name.toLowerCase().includes(tLow) || tLow.includes(c.name.toLowerCase())))
+        : null;
+
+      if (foundReal && foundReal.phone) {
+        const digits = String(foundReal.phone).replace(/\D/g, '');
+        const waPhone = digits.length === 10 ? '91' + digits : digits;
+        const waUrl = `https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(cleanMsg)}`;
+        const msg = isTe
+          ? `💬 ${foundReal.name} (${foundReal.phone}) కి వాట్సప్ మెసేజ్ పంపుతున్నాను: "${cleanMsg}"`
+          : `💬 Sending WhatsApp message to ${foundReal.name} (${foundReal.phone}): "${cleanMsg}"`;
+        appendMessage('aura', msg, [{ label: `WhatsApp ${foundReal.name}`, url: waUrl, auto_trigger: true }]);
+        speakReply(msg, lang, `Sending WhatsApp message to ${foundReal.name}`);
+        return;
+      }
+
+      // 3. Fallback: Open WhatsApp with pre-filled message so user can tap recipient
+      const waFallbackUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(cleanMsg)}`;
+      const fallbackMsg = isTe
+        ? `💬 వాట్సప్ మెసేజ్ "${cleanMsg}" సిద్ధంగా ఉంది (${cleanTarget || 'Contact'} ఎంచుకోండి). మీ ఫోన్ కాంటాక్ట్స్ సింక్ చేయడానికి పైన "🛡️ Permissions & Real Contacts" నొక్కండి.`
+        : `💬 Opening WhatsApp with message "${cleanMsg}" for ${cleanTarget || 'your contact'}. (Tip: Tap "🛡️ Permissions & Real Contacts" at the top to sync phone numbers).`;
+      appendMessage('aura', fallbackMsg, [{ label: `Send WhatsApp: "${cleanMsg}"`, url: waFallbackUrl, auto_trigger: true }]);
+      speakReply(fallbackMsg, lang, `Opening WhatsApp with your message`);
+    }
+
     function triggerNativeAndroidBridge(toolName, args, result) {
-      if (!window.AndroidNative) return;
       try {
+        if (toolName === 'scroll_screen') {
+          const dir = args?.direction || result?.direction || 'down';
+          window.performSmartScroll(dir);
+          return;
+        }
+        if (toolName === 'tap_screen_element') {
+          const target = args?.target_text || result?.target_text || '';
+          window.performSmartSelect(target);
+          return;
+        }
+        if (toolName === 'send_whatsapp_message') {
+          const target = args?.recipient_name_or_number || result?.recipient || '';
+          const msg = args?.message_text || result?.message_text || 'Hello';
+          if (window.AndroidNative && window.AndroidNative.sendWhatsApp) {
+            window.AndroidNative.sendWhatsApp(target, msg);
+          } else {
+            const realList = window.realPhoneContacts || [];
+            const tLow = String(target).toLowerCase();
+            const found = realList.find(c => c.name && (c.name.toLowerCase() === tLow || c.name.toLowerCase().includes(tLow)));
+            if (found && found.phone) {
+              const digits = String(found.phone).replace(/\D/g, '');
+              const waPhone = digits.length === 10 ? '91' + digits : digits;
+              window.location.href = `https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(msg)}`;
+            }
+          }
+          return;
+        }
+        if (!window.AndroidNative) return;
         if (toolName === 'make_phone_call' && (args?.contact_name_or_number || result?.contact_name || result?.phone_number)) {
           const queryTarget = args?.contact_name_or_number || result?.contact_name || result?.phone_number;
           window.AndroidNative.callContact(queryTarget);
@@ -979,10 +1189,6 @@
           window.AndroidNative.setTorch(args?.action !== 'off');
         } else if (toolName === 'set_alarm_or_timer' && args?.mode === 'alarm') {
           window.AndroidNative.setAlarm(args?.hour || 7, args?.minute || 0, args?.label || 'Aura Alarm');
-        } else if (toolName === 'tap_screen_element' && args?.target_text) {
-          window.AndroidNative.clickScreenText(args.target_text);
-        } else if (toolName === 'scroll_screen' && window.AndroidNative.scrollScreen) {
-          window.AndroidNative.scrollScreen(args?.direction || 'down');
         } else if (toolName === 'take_screenshot' && window.AndroidNative.captureScreenshot) {
           window.AndroidNative.captureScreenshot();
         } else if (toolName === 'play_youtube_media' && args?.query && window.AndroidNative.openYouTube) {
@@ -1086,7 +1292,7 @@
           if (act.auto_trigger) {
             setTimeout(() => {
               try {
-                if (window.AndroidNative && window.AndroidNative.openApp && act.label && act.label.toLowerCase().includes('open')) {
+                if (window.AndroidNative && window.AndroidNative.openApp && act.label && act.label.toLowerCase().includes('open') && !act.url.includes('api.whatsapp.com')) {
                   window.AndroidNative.openApp(act.label.replace(/^open\s+/i, ''));
                 } else {
                   window.location.href = act.url;
@@ -1096,8 +1302,15 @@
           }
         }
       }
-      box.scrollTop = box.scrollHeight;
+      if (window._skipNextBottomScroll) {
+        window._skipNextBottomScroll = false;
+      } else {
+        box.scrollTop = box.scrollHeight;
+      }
     }
+
+    let pendingWhatsAppStep = null; // 'ask_who' | 'ask_msg' | null
+    let pendingWhatsAppTarget = '';
 
     async function sendCommand(text) {
       if (!text.trim()) return;
@@ -1105,7 +1318,10 @@
       document.getElementById('orbStatus').innerText = 'Thinking & Executing...';
 
       const isCallIntent = /\b(call|phone|dial)\b/i.test(text) || /కాల్|ఫోన్|कॉल|கால்/.test(text);
-      if (isCallIntent && (window.AndroidNative || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
+      const isWaIntent = pendingWhatsAppStep !== null || /\b(whatsapp|vaatsap|whatsap)\b/i.test(text) || /వాట్సప్|వాట్సాప్|व्हाट्सएप|வாட்ஸ்அப்/.test(text);
+      const isSelectOrScroll = /\b(scroll|select|click|tap|choose)\b/i.test(text) || /స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|चुनो|क्लिक/.test(text);
+
+      if ((isCallIntent || isWaIntent || isSelectOrScroll) && (window.AndroidNative || isSelectOrScroll || isWaIntent || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
         await runStandaloneApkBrain(text);
         document.getElementById('orbStatus').innerText = handsFreeMode
           ? 'Hands-Free Listening... Speak anytime!'
@@ -1150,9 +1366,43 @@
       const lower = text.toLowerCase();
       const hasTeScript = /[\u0C00-\u0C7F]/.test(text);
       const hasHiScript = /[\u0900-\u097F]/.test(text);
-      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi|evaru)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
-      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai|kaun)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
+      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi|evaru|pampu|pettu)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
+      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai|kaun|bhejo)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+
+      if ( /\b(cancel|stop|nevermind)\b/.test(lower) || /వద్దు|ఆపు/.test(text) ) {
+        pendingWhatsAppStep = null;
+        pendingWhatsAppTarget = '';
+      }
+
+      // Multi-turn WhatsApp Step 1 -> 2: User answered WHO to message
+      if (pendingWhatsAppStep === 'ask_who') {
+        let who = text
+          .replace(/^(?:to|send\s+to|message\s+to|whatsapp\s+to)\s+/i, '')
+          .replace(/\s+(?:ki|ku|ko|కి|కు|को)$/i, '')
+          .trim();
+        if (/అమ్మ|अम्मा|அம்மா|\b(amma|mom|mummy)\b/i.test(who)) who = 'Amma';
+        else if (/నాన్న|అప్పా|पापा|அப்பா|\b(nanna|appa|dad|papa)\b/i.test(who)) who = 'Nanna';
+        pendingWhatsAppTarget = who || text;
+        pendingWhatsAppStep = 'ask_msg';
+        const askMsg = isTe
+          ? `💬 ${pendingWhatsAppTarget} కి వాట్సప్‌లో ఏం మెసేజ్ పంపమంటారు?`
+          : (isHi
+            ? `💬 ${pendingWhatsAppTarget} को व्हाट्सऐप पर क्या संदेश भेजना है?`
+            : `💬 What message would you like to send to ${pendingWhatsAppTarget} on WhatsApp?`);
+        appendMessage('aura', askMsg);
+        speakReply(askMsg, lang, `What message should I send to ${pendingWhatsAppTarget}?`);
+        return;
+      }
+
+      // Multi-turn WhatsApp Step 2 -> 3: User answered WHAT message to send
+      if (pendingWhatsAppStep === 'ask_msg') {
+        const target = pendingWhatsAppTarget;
+        pendingWhatsAppStep = null;
+        pendingWhatsAppTarget = '';
+        executeWhatsAppSend(target, text, isTe, isHi, lang);
+        return;
+      }
 
       if (pendingApkPerm && (/\b(yes|allow|ok|avunu|sare|haan|ha)\b/.test(lower) || /అవును|సరే|हाँ/.test(text))) {
         const act = pendingApkPerm;
@@ -1195,11 +1445,84 @@
         return;
       }
 
+      // WhatsApp Handling: Single-turn message, Multi-turn message, or Open App
       if (/\b(whatsapp|vaatsap|whatsap)\b/.test(lower) || /వాట్సప్|వాట్సాప్|व्हाट्सएप|வாட்ஸ்அப்/.test(text)) {
-        if (window.AndroidNative && window.AndroidNative.openApp) window.AndroidNative.openApp('whatsapp');
-        const msg = isTe ? '💬 WhatsApp తెరుస్తున్నాను.' : (isHi ? '💬 व्हाट्सऐप खोल रही हूँ।' : '💬 Opening WhatsApp now.');
-        appendMessage('aura', msg, [{ label: 'Open WhatsApp', url: 'whatsapp://', auto_trigger: true }]);
-        speakReply(msg, lang, 'Opening WhatsApp');
+        const hasMsgKeyword = /\b(message|msg|send|text|say|saying|that|pampu|pettu|cheppu|bhejo)\b/i.test(text) || /మెసేజ్|పంపు|పెట్టు|చెప్పు|संदेश|भेजो/.test(text);
+        const isJustOpen = /\b(open|launch|start|teruvu)\b/i.test(text) && !hasMsgKeyword;
+
+        if (isJustOpen) {
+          if (window.AndroidNative && window.AndroidNative.openApp) window.AndroidNative.openApp('whatsapp');
+          const msg = isTe ? '💬 WhatsApp తెరుస్తున్నాను.' : (isHi ? '💬 व्हाट्सऐप खोल रही हूँ।' : '💬 Opening WhatsApp now.');
+          appendMessage('aura', msg, [{ label: 'Open WhatsApp', url: 'whatsapp://', auto_trigger: true }]);
+          speakReply(msg, lang, 'Opening WhatsApp');
+          return;
+        }
+
+        // Try extracting single-turn: target + message
+        // Pattern A: "send message to <Name> in whatsapp saying/that <Msg>" or "whatsapp message to <Name> <Msg>"
+        let targetName = '';
+        let msgBody = '';
+
+        const patSaying = text.match(/(?:to|ki|ko)\s+([a-zA-Z\u0C00-\u0C7F\u0900-\u097F0-9_]+?)\s+(?:in\s+whatsapp\s+|on\s+whatsapp\s+)?(?:saying|that|as|ani)\s+(.+)$/i);
+        const patInWaSaying = text.match(/(?:send|whatsapp|message|msg).*?(?:to)\s+([a-zA-Z\u0C00-\u0C7F\u0900-\u097F0-9_]+?)\s+(?:in|on)\s+(?:whatsapp|vaatsap|వాట్సప్|వాట్సాప్)\s+(.+)$/i);
+        const patTe = text.match(/^([a-zA-Z\u0C00-\u0C7F0-9_]+?)\s+(?:ki|కి|కు)\s+(?:whatsapp\s+lo|వాట్సప్\s*లో|వాట్సాప్\s*లో)\s+(.+?)\s+(?:ani\s+|అని\s+)?(?:message|msg|మెసేజ్|పంపు|పెట్టు)/i);
+        const patDirect = text.match(/^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:whatsapp|వాట్సప్|వాట్సాప్)\s+([a-zA-Z\u0C00-\u0C7F0-9_]+?)\s+(.+)$/i);
+
+        if (patSaying) {
+          targetName = patSaying[1].trim();
+          msgBody = patSaying[2].trim();
+        } else if (patInWaSaying) {
+          targetName = patInWaSaying[1].trim();
+          msgBody = patInWaSaying[2].trim();
+        } else if (patTe) {
+          targetName = patTe[1].trim();
+          msgBody = patTe[2].trim();
+        } else if (patDirect && !/^(lo|లో|message|msg|open|send|to|in)$/i.test(patDirect[1])) {
+          targetName = patDirect[1].trim();
+          msgBody = patDirect[2].trim();
+        } else {
+          // Check if contact name is given without message body, e.g. "send message to Amma in whatsapp" or "send whatsapp message to Ravi"
+          let rem = text
+            .replace(/^(?:hey\s+aura|aura|please|can\s+you|i\s+want\s+to)\s+/i, '')
+            .replace(/\b(?:send|a|an|the|whatsapp|vaatsap|whatsap|message|msg|text|in|on|to|for|lo|ki|ku|ko|pampu|pettu|chey|cheyi|karo|bhejo)\b/gi, ' ')
+            .replace(/వాట్సప్|వాట్సాప్|లో|మెసేజ్|పంపు|పెట్టు|చేయి|చేయ్|కి|కు|व्हाट्सएप|में|संदेश|भेजो|को/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (rem) {
+            targetName = rem;
+          }
+        }
+
+        if (/అమ్మ|अम्मा|அம்மா|\b(amma|mom|mummy)\b/i.test(targetName)) targetName = 'Amma';
+        else if (/నాన్న|అప్పా|पापा|அப்பா|\b(nanna|appa|dad|papa)\b/i.test(targetName)) targetName = 'Nanna';
+
+        if (targetName && msgBody) {
+          executeWhatsAppSend(targetName, msgBody, isTe, isHi, lang);
+          return;
+        }
+
+        if (targetName && !msgBody) {
+          pendingWhatsAppTarget = targetName;
+          pendingWhatsAppStep = 'ask_msg';
+          const askMsg = isTe
+            ? `💬 ${targetName} కి వాట్సప్‌లో ఏం మెసేజ్ పంపమంటారు?`
+            : (isHi
+              ? `💬 ${targetName} को व्हाट्सऐप पर क्या संदेश भेजना है?`
+              : `💬 What message would you like to send to ${targetName} on WhatsApp?`);
+          appendMessage('aura', askMsg);
+          speakReply(askMsg, lang, `What message should I send to ${targetName}?`);
+          return;
+        }
+
+        // Neither contact nor message specified (e.g. "send message in whatsapp" / "send message to in whatsapp" / "వాట్సప్ లో మెసేజ్ పంపు")
+        pendingWhatsAppStep = 'ask_who';
+        const askWho = isTe
+          ? '💬 వాట్సప్‌లో ఎవరికి మెసేజ్ పంపాలి? కాంటాక్ట్ పేరు చెప్పండి.'
+          : (isHi
+            ? '💬 व्हाट्सऐप पर किसको संदेश भेजना है? नाम बताइए।'
+            : '💬 Who would you like to send a WhatsApp message to? Please say the contact name.');
+        appendMessage('aura', askWho);
+        speakReply(askWho, lang, 'Who would you like to send a WhatsApp message to?');
         return;
       }
 
@@ -1254,6 +1577,44 @@
         return;
       }
 
+      // Select / Click / Tap UI element handler
+      if (/\b(select|click|tap|choose)\b/.test(lower) || /సెలెక్ట్|క్లిక్|నొక్కు|चुनो|क्लिक/.test(text)) {
+        const target = text
+          .replace(/^(?:hey\s+aura|aura|please|can\s+you)\s+/i, '')
+          .replace(/\b(?:select|click|tap|choose|on|the|button|option|item|chey|cheyi|karo)\b/gi, ' ')
+          .replace(/సెలెక్ట్|క్లిక్|నొక్కు|చేయి|చేయ్|चुनो|क्लिक|करो|दबाओ/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim() || text;
+        const selRes = window.performSmartSelect(target);
+        if (window.AndroidNative && window.AndroidNative.clickScreenText) {
+          window.AndroidNative.clickScreenText(target);
+        }
+        const msg = selRes.matched
+          ? (isTe ? `👆 "${selRes.label}" సెలెక్ట్ చేశాను.` : `👆 Selected "${selRes.label}".`)
+          : (isTe ? `👆 "${target}" పై క్లిక్ చేశాను.` : `👆 Tapped on "${target}".`);
+        appendMessage('aura', msg);
+        speakReply(msg, lang, `Selected ${selRes.label || target}`);
+        return;
+      }
+
+      // Scroll Screen handler (Up, Down, Left, Right)
+      if (/\b(scroll)\b/.test(lower) || /స్క్రోల్/.test(text)) {
+        let dir = 'down';
+        if (lower.includes('up') || lower.includes('paiki') || lower.includes('top') || /పైకి/.test(text)) dir = 'up';
+        else if (lower.includes('left') || /ఎడమ/.test(text)) dir = 'left';
+        else if (lower.includes('right') || /కుడి/.test(text)) dir = 'right';
+
+        window.performSmartScroll(dir);
+        if (window.AndroidNative && window.AndroidNative.scrollScreen) {
+          window.AndroidNative.scrollScreen(dir);
+        }
+        const dirTe = dir === 'up' ? 'పైకి' : (dir === 'left' ? 'ఎడమవైపుకి' : (dir === 'right' ? 'కుడివైపుకి' : 'కిందకి'));
+        const msg = isTe ? `👇 స్క్రీన్ ${dirTe} స్క్రోల్ చేశాను.` : `👇 Scrolled screen ${dir}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang, `Scrolled screen ${dir}`);
+        return;
+      }
+
       const mathMatch = lower.match(/(\d+)\s*(plus|\+|minus|-|into|\*|times|divided by|\/)\s*(\d+)/);
       if (mathMatch) {
         const a = parseFloat(mathMatch[1]), b = parseFloat(mathMatch[3]), op = mathMatch[2];
@@ -1282,10 +1643,10 @@
 
       if (/\b(who are you|your name|what can you do|help)\b/.test(lower) || /నువ్వు ఎవరు|మీరు ఎవరు|ఏం చేయగలవు|तुम कौन हो|क्या कर सकते हो/.test(text)) {
         const msg = isTe
-          ? '🤖 నమస్కారం! నేను ఆరా (Aura v2.1) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp/YouTube/Maps ఓపెన్ చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
+          ? '🤖 నమస్కారం! నేను ఆరా (Aura v2.1) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp మెసేజ్‌లు పంపగలను, స్క్రీన్ స్క్రోల్/సెలెక్ట్ చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
           : (isHi
-            ? '🤖 नमस्ते! मैं ऑरा (Aura v2.1) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल कर सकती हूँ, ऐप्स खोल सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
-            : '🤖 Hello! I am Aura v2.1, your multilingual Android AI Assistant. I can call your real phone contacts, open apps like WhatsApp/YouTube/Maps, control hardware settings, and answer any question in Telugu, Hindi, Tamil, and English!');
+            ? '🤖 नमस्ते! मैं ऑरा (Aura v2.1) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल और व्हाट्सऐप मैसेज कर सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
+            : '🤖 Hello! I am Aura v2.1, your multilingual Android AI Assistant. I can call and send WhatsApp messages to your real phone contacts, select buttons, scroll the screen, and answer any question in Telugu, Hindi, Tamil, and English!');
         appendMessage('aura', msg);
         speakReply(msg, lang);
         return;
@@ -1333,15 +1694,6 @@
         const msg = isTe ? `🗺️ Google Maps లో ${dest} కి నావిగేట్ చేస్తున్నాను.` : `🗺️ Navigating to ${dest} in Google Maps.`;
         appendMessage('aura', msg, [{ label: `Navigate: ${dest}`, url: mapUrl, auto_trigger: true }]);
         speakReply(msg, lang, 'Opening Google Maps');
-        return;
-      }
-
-      if (/\b(scroll)\b/.test(lower) || /స్క్రోల్/.test(text)) {
-        const dir = lower.includes('up') || lower.includes('paiki') || /పైకి/.test(text) ? 'up' : 'down';
-        if (window.AndroidNative && window.AndroidNative.scrollScreen) window.AndroidNative.scrollScreen(dir);
-        const msg = isTe ? `👇 స్క్రీన్ ${dir === 'down' ? 'కిందకి' : 'పైకి'} స్క్రోల్ చేశాను.` : `👇 Scrolled screen ${dir}.`;
-        appendMessage('aura', msg);
-        speakReply(msg, lang);
         return;
       }
 

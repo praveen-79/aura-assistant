@@ -942,6 +942,19 @@ class AuraGeminiAgent:
                     "client_actions": client_actions,
                 })
 
+            if pending["type"] == "whatsapp_who":
+                target_name = text.strip()
+                self.pending_intent = {"type": "whatsapp_msg", "target": target_name, "lang": p_lang}
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": text,
+                    "detected_language": p_lang,
+                    "reply": p_tpl["ask_wa_msg"].format(name=target_name.title()),
+                    "executed_tools": [],
+                    "client_actions": [],
+                })
+
             if pending["type"] == "whatsapp_msg":
                 target_name = pending["target"]
                 res = self.automation.send_whatsapp_message(target_name, text)
@@ -1170,51 +1183,81 @@ class AuraGeminiAgent:
                 "client_actions": client_actions,
             })
 
-        # 2. Detect WhatsApp intent (check incomplete command without message body first!)
-        wa_incomplete = re.search(
-            r"^(?:(.+?)\s+(?:ko|ku|ki|को|కి|கு)\s+whatsapp\s*(?:karo|bhejo|chey|cheyandi|pampu|pannu|करो|भेजो|చేయి|పంపు|பண்ணு)?|(?:send\s+)?whatsapp(?:\s+to)?\s+(\S+))$",
-            lower,
-        )
-        if wa_incomplete:
-            target_name = (wa_incomplete.group(1) or wa_incomplete.group(2) or "").strip()
-            if target_name and target_name not in {"open", "launch", "kholo", "teruvu", "thira"}:
-                self.pending_intent = {"type": "whatsapp_msg", "target": target_name, "lang": lang}
-                return self._finalize_response({
-                    "status": "ok",
-                    "mode": "offline_smart_engine",
-                    "normalized_input": text,
-                    "detected_language": lang,
-                    "reply": tpl["ask_wa_msg"].format(name=target_name.title()),
-                    "executed_tools": [],
-                    "client_actions": [],
-                })
-
+        # 2. Detect WhatsApp intent (check full command, contact-only command, and no-contact command)
         wa_patterns = [
-            r"^(.+?)\s+(?:ko|ku|ki|को|కి|கு)\s+whatsapp\s+(?:karo|bhejo|message karo|chey|cheyandi|pampu|pannu|करो|भेजो|చేయి|పంపు|பண்ணு)\s+(.+)$",
-            r"^(?:send\s+)?whatsapp(?:\s+message)?(?:\s+to)?\s+(\S+)\s+(?:saying|that|message|:)?\s*(.+)$",
+            r"^(.+?)\s+(?:ko|ku|ki|को|కి|கு)\s+(?:whatsapp|వాట్సప్|వాట్సాప్|व्हाट्सएप|व्हाट्सऐप)\s+(?:lo\s+|par\s+|pe\s+|లో\s+|पर\s+)?(?:karo|bhejo|message\s*karo|message\s*bhejo|message\s*pampu|chey|cheyi|cheyandi|pampu|pannu|करो|भेजो|చేయి|పంపు|మెసేజ్\s*పంపు|பண்ணு)\s+(.+)$",
+            r"^(?:send\s+)?(?:a\s+)?(?:whatsapp\s+message|message\s+(?:in|on|via)\s+whatsapp|whatsapp)\s+(?:to\s+)?(\S+)\s+(?:saying|that|message|:)?\s*(.+)$",
+            r"^(?:send\s+)?(?:a\s+)?message\s+to\s+(\S+)\s+(?:in|on|via)\s+whatsapp\s+(?:saying|that|message|:)\s*(.+)$",
         ]
         for pat in wa_patterns:
             wa_match = re.search(pat, lower)
             if wa_match:
                 target_name, msg = wa_match.group(1).strip(), wa_match.group(2).strip()
-                res = self.automation.send_whatsapp_message(target_name, msg)
-                executed_tools.append({
-                    "name": "send_whatsapp_message",
-                    "args": {"contact_name_or_number": target_name, "message": msg},
-                    "result": res,
-                })
-                if res.get("client_action"):
-                    client_actions.append(res["client_action"])
-                reply = tpl["whatsapp"].format(name=res.get("contact_name", target_name), msg=msg)
-                return self._finalize_response({
-                    "status": "ok",
-                    "mode": "offline_smart_engine",
-                    "normalized_input": text,
-                    "detected_language": lang,
-                    "reply": reply,
-                    "executed_tools": executed_tools,
-                    "client_actions": client_actions,
-                })
+                if target_name not in {"in", "on", "to", "message"}:
+                    res = self.automation.send_whatsapp_message(target_name, msg)
+                    executed_tools.append({
+                        "name": "send_whatsapp_message",
+                        "args": {"contact_name_or_number": target_name, "message": msg},
+                        "result": res,
+                    })
+                    if res.get("client_action"):
+                        client_actions.append(res["client_action"])
+                    reply = tpl["whatsapp"].format(name=res.get("contact_name", target_name), msg=msg)
+                    return self._finalize_response({
+                        "status": "ok",
+                        "mode": "offline_smart_engine",
+                        "normalized_input": text,
+                        "detected_language": lang,
+                        "reply": reply,
+                        "executed_tools": executed_tools,
+                        "client_actions": client_actions,
+                    })
+
+        wa_incomplete_patterns = [
+            r"^(.+?)\s+(?:ko|ku|ki|को|కి|கு)\s+(?:whatsapp|వాట్సప్|వాట్సాప్|व्हाट्सएप|व्हाट्सऐप)\s*(?:lo\s+|par\s+|pe\s+|లో\s+|पर\s+)?(?:karo|bhejo|message\s*karo|message\s*bhejo|message\s*pampu|chey|cheyi|cheyandi|pampu|pannu|करो|भेजो|చేయి|పంపు|మెసేజ్\s*పంపు|பண்ணு)?$",
+            r"^(?:send\s+)?(?:a\s+)?(?:whatsapp\s+message|message\s+(?:in|on|via)\s+whatsapp|whatsapp)\s+to\s+(.+)$",
+            r"^(?:send\s+)?(?:a\s+)?message\s+to\s+(.+?)\s+(?:in|on|via)\s+whatsapp$",
+            r"^(?:send\s+)?whatsapp(?:\s+to)?\s+(\S+)$",
+        ]
+        for wpat in wa_incomplete_patterns:
+            wa_inc = re.search(wpat, lower)
+            if wa_inc:
+                target_name = wa_inc.group(1).strip()
+                if target_name and target_name not in {"open", "launch", "kholo", "teruvu", "thira", "in", "on", "to", "message"}:
+                    self.pending_intent = {"type": "whatsapp_msg", "target": target_name, "lang": lang}
+                    return self._finalize_response({
+                        "status": "ok",
+                        "mode": "offline_smart_engine",
+                        "normalized_input": text,
+                        "detected_language": lang,
+                        "reply": tpl["ask_wa_msg"].format(name=target_name.title()),
+                        "executed_tools": [],
+                        "client_actions": [],
+                    })
+
+        if re.search(
+            r"^(?:send\s+(?:a\s+)?message\s+(?:to\s+)?(?:in|on|via)\s+whatsapp|send\s+(?:a\s+)?whatsapp\s+message|(?:whatsapp|వాట్సప్|వాట్సాప్|व्हाट्सएप|व्हाट्सऐप)\s+(?:lo|par|pe|లో|पर)\s+(?:message|మెసేజ్|मैसेज)\s+(?:pampu|chey|bhejo|karo|పంపు|చేయి|भेजो|करो))$",
+            lower,
+        ):
+            self.pending_intent = {"type": "whatsapp_who", "lang": lang}
+            ask_who_wa = (
+                "ఎవరికి వాట్సప్ మెసేజ్ పంపాలి? దయచేసి కాంటాక్ట్ పేరు చెప్పండి."
+                if lang == "te"
+                else (
+                    "किसको व्हाट्सऐप मैसेज भेजना है? कृपया नाम बताइए।"
+                    if lang == "hi"
+                    else "Who would you like to send a WhatsApp message to? Please say the contact's name."
+                )
+            )
+            return self._finalize_response({
+                "status": "ok",
+                "mode": "offline_smart_engine",
+                "normalized_input": text,
+                "detected_language": lang,
+                "reply": ask_who_wa,
+                "executed_tools": [],
+                "client_actions": [],
+            })
 
         # 3. Detect SMS intent
         sms_match = re.search(r"^(?:send\s+sms\s+to|sms|text)\s+(\S+)\s+(?:saying|that|:)?\s*(.+)$", lower)
@@ -1447,21 +1490,35 @@ class AuraGeminiAgent:
                     "client_actions": client_actions,
                 })
 
-        # 7. Screen Tap
-        tap_match = re.search(r"^(?:tap|click)\s+(?:on\s+)?(.+)$", lower)
-        if tap_match:
-            target_btn = tap_match.group(1).strip()
-            res = self.automation.tap_screen_element(target_btn)
-            executed_tools.append({"name": "tap_screen_element", "args": {"target_text": target_btn}, "result": res})
-            return self._finalize_response({
-                "status": "ok",
-                "mode": "offline_smart_engine",
-                "normalized_input": text,
-                "detected_language": lang,
-                "reply": f"Tapped '{target_btn}' on screen." if res.get("status") == "ok" else res.get("message", "Could not tap."),
-                "executed_tools": executed_tools,
-                "client_actions": client_actions,
-            })
+        # 7. Screen Tap / Select ("tap Send", "select Telugu", "click Contacts", "Telugu select chey", "తెలుగు సెలెక్ట్ చేయి")
+        tap_patterns = [
+            r"^(?:tap|click|select|choose)\s+(?:on\s+)?(.+)$",
+            r"^(.+?)\s+(?:select\s*chey|select\s*cheyi|click\s*chey|click\s*cheyi|tap\s*chey|nokku|select\s*karo|click\s*karo|chuno|సెలెక్ట్\s*చేయి|సెలెక్ట్\s*చేయ్|క్లిక్\s*చేయి|క్లిక్\s*చేయ్|నొక్కు|चुनो|क्लिक\s*करो)$",
+        ]
+        for tpat in tap_patterns:
+            tap_match = re.search(tpat, lower)
+            if tap_match:
+                target_btn = tap_match.group(1).strip()
+                res = self.automation.tap_screen_element(target_btn)
+                executed_tools.append({"name": "tap_screen_element", "args": {"target_text": target_btn}, "result": res})
+                reply_msg = (
+                    f"'{target_btn}' సెలెక్ట్ / క్లిక్ చేశాను."
+                    if lang == "te"
+                    else (
+                        f"'{target_btn}' को सेलेक्ट / क्लिक कर दिया है।"
+                        if lang == "hi"
+                        else f"Selected / clicked '{target_btn}' on screen."
+                    )
+                )
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": text,
+                    "detected_language": lang,
+                    "reply": reply_msg,
+                    "executed_tools": executed_tools,
+                    "client_actions": client_actions,
+                })
 
         # 7b. Voice Math & Percentage Calculator ("15 percent of 2400", "250 plus 475 entha", "125 into 18 kitna hota hai")
         calc_res = self.automation.calculate_math(lower)

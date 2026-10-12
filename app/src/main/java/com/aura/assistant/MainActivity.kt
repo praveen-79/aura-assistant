@@ -325,6 +325,65 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun sendWhatsApp(nameOrNumber: String, message: String): String {
+            val trimmed = nameOrNumber.trim()
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                requestRequiredPermissions()
+            }
+
+            val matched = if (trimmed.isNotEmpty()) lookupRealContact(trimmed) else null
+            if (matched != null) {
+                val digits = matched.second.replace(Regex("[^0-9]"), "")
+                val waPhone = if (digits.length == 10) "91$digits" else digits
+                val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$waPhone&text=${Uri.encode(message)}")
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, waUri).apply {
+                        setPackage("com.whatsapp")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("whatsapp://send?phone=$waPhone&text=${Uri.encode(message)}")))
+                    } catch (e2: Exception) {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, waUri))
+                        } catch (ignored: Exception) {}
+                    }
+                }
+                return "FOUND:${matched.first}|${matched.second}"
+            }
+
+            val isSampleNumber = sampleDemoNumbers.containsKey(trimmed)
+            val rawDigits = trimmed.replace(Regex("[^0-9]"), "")
+            if (!isSampleNumber && rawDigits.length >= 10 && trimmed.all { it.isDigit() || it in "+ -()" }) {
+                val waPhone = if (rawDigits.length == 10) "91$rawDigits" else rawDigits
+                val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$waPhone&text=${Uri.encode(message)}")
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, waUri).apply { setPackage("com.whatsapp") })
+                } catch (e: Exception) {
+                    try { startActivity(Intent(Intent.ACTION_VIEW, waUri)) } catch (ignored: Exception) {}
+                }
+                return "FOUND:$rawDigits|$rawDigits"
+            }
+
+            // Fallback: Open WhatsApp's native contact picker with the message pre-filled
+            try {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, message)
+                    setPackage("com.whatsapp")
+                }
+                startActivity(shareIntent)
+                return "PICKER:$trimmed"
+            } catch (e: Exception) {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?text=${Uri.encode(message)}")))
+                } catch (ignored: Exception) {}
+                return "NOT_FOUND:$trimmed"
+            }
+        }
+
+        @JavascriptInterface
         fun sendSms(phoneNumber: String, message: String) {
             val matched = lookupRealContact(phoneNumber)
             val targetNum = matched?.second ?: phoneNumber
@@ -376,8 +435,9 @@ class MainActivity : AppCompatActivity() {
         fun scrollScreen(direction: String): Boolean {
             runOnUiThread {
                 if (::webView.isInitialized) {
-                    val dy = if (direction.lowercase() == "up") -600 else 600
+                    val dy = if (direction.lowercase() == "up") -450 else 450
                     webView.scrollBy(0, dy)
+                    webView.evaluateJavascript("if (window.performSmartScroll) window.performSmartScroll('$direction');", null)
                 }
             }
             return true
@@ -385,6 +445,12 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun clickScreenText(targetText: String): Boolean {
+            val safeText = targetText.replace("'", "\\'")
+            runOnUiThread {
+                if (::webView.isInitialized) {
+                    webView.evaluateJavascript("if (window.performSmartSelect) window.performSmartSelect('$safeText');", null)
+                }
+            }
             return true
         }
 

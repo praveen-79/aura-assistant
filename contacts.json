@@ -1,32 +1,1959 @@
 [
   {
     "name": "Amma (Mom)",
-    "aliases": ["amma", "mom", "mother", "mummy", "maa", "अम्मा", "माँ", "मम्मी", "அம்மா", "అమ్మ", "মা"],
     "phone": "+919876543210",
+    "aliases": [
+      "amma",
+      "mom",
+      "mother",
+      "mummy",
+      "maa",
+      "अम्मा",
+      "माँ",
+      "मम्मी",
+      "அம்மா",
+      "అమ్మ",
+      "মা"
+    ],
     "relationship": "Mother"
   },
   {
-    "name": "Appa (Dad)",
-    "aliases": ["appa", "dad", "father", "papa", "baba", "अप्पा", "पापा", "पिताजी", "அப்பா", "నాన్న", "বাবা"],
-    "phone": "+919876543211",
+    "name": "DAD",
+    "phone": "8309490877",
+    "aliases": [
+      "appa",
+      "dad",
+      "father",
+      "papa",
+      "baba",
+      "अप्पा",
+      "पापा",
+      "पिताजी",
+      "அப்பா",
+      "నాన్న",
+      "বাবা"
+    ],
     "relationship": "Father"
   },
   {
     "name": "Rahul Sharma",
-    "aliases": ["rahul", "rahul bhai", "sharma ji", "राहुल", "राहुल भाई", "शर्मा जी", "ராகுல்", "రాహుల్"],
     "phone": "+919811122233",
+    "aliases": [
+      "rahul",
+      "rahul bhai",
+      "sharma ji",
+      "राहुल",
+      "राहुल भाई",
+      "शर्मा जी",
+      "ராகுல்",
+      "రాహుల్"
+    ],
     "relationship": "Friend"
   },
   {
     "name": "Priya Patel",
-    "aliases": ["priya", "priya didi", "प्रिया", "प्रिया दीदी", "பிரியா", "ప్రియా"],
     "phone": "+919822233344",
+    "aliases": [
+      "priya",
+      "priya didi",
+      "प्रिया",
+      "प्रिया दीदी",
+      "பிரியா",
+      "ప్రియా"
+    ],
     "relationship": "Sister"
   },
   {
-    "name": "Emergency Services",
-    "aliases": ["emergency", "police", "ambulance", "help", "पुलिस", "एम्बुलेंस"],
-    "phone": "112",
+    "name": "Ambulance",
+    "phone": "102",
+    "aliases": [
+      "emergency",
+      "police",
+      "ambulance",
+      "help",
+      "पुलिस",
+      "एम्बुलेंस"
+    ],
     "relationship": "Emergency"
+  },
+  {
+    "name": "(ﾉ◕ヮ◕)ﾉ*.✧",
+    "phone": "9502708923",
+    "aliases": [
+      "(ﾉ◕ヮ◕)ﾉ*.✧"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "+91 73863 73579",
+    "phone": "+917386373579",
+    "aliases": [
+      "+91 73863 73579"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": ".",
+    "phone": "9502708923",
+    "aliases": [
+      "."
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "3nadh Bro",
+    "phone": "+917286893618",
+    "aliases": [
+      "3nadh bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "3rd Class Tution",
+    "phone": "+919908642599",
+    "aliases": [
+      "3rd class tution"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "416",
+    "phone": "9030353059",
+    "aliases": [
+      "416"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "999",
+    "phone": "999",
+    "aliases": [
+      "999"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "@priyanka Akka 2",
+    "phone": "+919182244708",
+    "aliases": [
+      "@priyanka akka 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "ANU 🖤",
+    "phone": "+918121370779",
+    "aliases": [
+      "anu 🖤"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Aaa",
+    "phone": "7780707056",
+    "aliases": [
+      "aaa"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Aamir Aiml",
+    "phone": "7989358074",
+    "aliases": [
+      "aamir aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abc",
+    "phone": "+919102457644",
+    "aliases": [
+      "abc"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abdul Aids",
+    "phone": "+917032852004",
+    "aliases": [
+      "abdul aids"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abhi Aiml",
+    "phone": "7842311440",
+    "aliases": [
+      "abhi aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abhinavvvvv",
+    "phone": "9133962003",
+    "aliases": [
+      "abhinavvvvv"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abhinay",
+    "phone": "6304750611",
+    "aliases": [
+      "abhinay"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abhinayy.",
+    "phone": "+919949970528",
+    "aliases": [
+      "abhinayy."
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abhiram Csm",
+    "phone": "+917075176987",
+    "aliases": [
+      "abhiram csm"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Abhudhay (Aiml)",
+    "phone": "7842311440",
+    "aliases": [
+      "abhudhay (aiml)"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Adithya Cse",
+    "phone": "8328380480",
+    "aliases": [
+      "adithya cse"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Akash",
+    "phone": "+919346074156",
+    "aliases": [
+      "akash"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Akash Bro (S)",
+    "phone": "+917989784437",
+    "aliases": [
+      "akash bro (s)"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Akhila Aiml",
+    "phone": "+916304461816",
+    "aliases": [
+      "akhila aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Akkkkkaaaaaa",
+    "phone": "+919063366697",
+    "aliases": [
+      "akkkkkaaaaaa"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Aman",
+    "phone": "+919010198786",
+    "aliases": [
+      "aman"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Aman Bff🥰",
+    "phone": "+919010198786",
+    "aliases": [
+      "aman bff🥰"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ammamma",
+    "phone": "+919391215141",
+    "aliases": [
+      "ammamma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ammamma Anuradha",
+    "phone": "9542461582",
+    "aliases": [
+      "ammamma anuradha"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ammammma",
+    "phone": "9515675008",
+    "aliases": [
+      "ammammma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ammulu",
+    "phone": "+917989800930",
+    "aliases": [
+      "ammulu"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Anand",
+    "phone": "+919951480543",
+    "aliases": [
+      "anand"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Anas",
+    "phone": "+917032471795",
+    "aliases": [
+      "anas"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Anil",
+    "phone": "+919490377967",
+    "aliases": [
+      "anil"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Animesh Saahu Tution",
+    "phone": "9811935358",
+    "aliases": [
+      "animesh saahu tution"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Anji Babai",
+    "phone": "9703636147",
+    "aliases": [
+      "anji babai"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Anji Babai2",
+    "phone": "+918712542906",
+    "aliases": [
+      "anji babai2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ankith Eee",
+    "phone": "+918074961673",
+    "aliases": [
+      "ankith eee"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Annika Cbit",
+    "phone": "+917981081356",
+    "aliases": [
+      "annika cbit"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Arman Cic",
+    "phone": "7013213879",
+    "aliases": [
+      "arman cic"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Arshad Ali",
+    "phone": "+918686864829",
+    "aliases": [
+      "arshad ali"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Arun Cbit",
+    "phone": "+919618378054",
+    "aliases": [
+      "arun cbit"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ashish  Mgit",
+    "phone": "+919121802414",
+    "aliases": [
+      "ashish  mgit"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ashish Cse",
+    "phone": "8519947420",
+    "aliases": [
+      "ashish cse"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Asif Ali",
+    "phone": "7842317337",
+    "aliases": [
+      "asif ali"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Asraaaaan",
+    "phone": "7989717039",
+    "aliases": [
+      "asraaaaan"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Asraaaan",
+    "phone": "7075485474",
+    "aliases": [
+      "asraaaan"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "AtharvaShelge Aiml",
+    "phone": "+917842534931",
+    "aliases": [
+      "atharvashelge aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Attha",
+    "phone": "+917981433609",
+    "aliases": [
+      "attha"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Auto",
+    "phone": "9949067226",
+    "aliases": [
+      "auto"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "BAVA bro",
+    "phone": "+918523862956",
+    "aliases": [
+      "bava bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Baaba",
+    "phone": "+919392307316",
+    "aliases": [
+      "baaba"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Baba 2",
+    "phone": "+916302300580",
+    "aliases": [
+      "baba 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Babai",
+    "phone": "9292852952",
+    "aliases": [
+      "babai"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Babai2",
+    "phone": "+919160589252",
+    "aliases": [
+      "babai2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Babbi",
+    "phone": "+918341040627",
+    "aliases": [
+      "babbi"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Badri 2",
+    "phone": "8801342174",
+    "aliases": [
+      "badri 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Badri Narayanaaaaaa",
+    "phone": "7673960651",
+    "aliases": [
+      "badri narayanaaaaaa"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Balu Eamcet",
+    "phone": "+919866978400",
+    "aliases": [
+      "balu eamcet"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bava Bro 2",
+    "phone": "+919493001484",
+    "aliases": [
+      "bava bro 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bava🖤",
+    "phone": "+917093015912",
+    "aliases": [
+      "bava🖤"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bhanu Teza",
+    "phone": "+919866824486",
+    "aliases": [
+      "bhanu teza"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bharath Csm",
+    "phone": "+919182544086",
+    "aliases": [
+      "bharath csm"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bro",
+    "phone": "+919032744421",
+    "aliases": [
+      "bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bro 1",
+    "phone": "+919390805597",
+    "aliases": [
+      "bro 1"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bro 2",
+    "phone": "+919390805597",
+    "aliases": [
+      "bro 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bro Nikhil Gym",
+    "phone": "+916281679047",
+    "aliases": [
+      "bro nikhil gym"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Brooooooooo",
+    "phone": "+916303813331",
+    "aliases": [
+      "brooooooooo"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bruh",
+    "phone": "+916309878452",
+    "aliases": [
+      "bruh"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bruh😎😎",
+    "phone": "+919347506678",
+    "aliases": [
+      "bruh😎😎"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bucharao Mamayya",
+    "phone": "9000001869",
+    "aliases": [
+      "bucharao mamayya"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bucharao Mamayya 2",
+    "phone": "+917095404650",
+    "aliases": [
+      "bucharao mamayya 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Buchi Babai",
+    "phone": "9032326474",
+    "aliases": [
+      "buchi babai"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Bujji",
+    "phone": "8185094972",
+    "aliases": [
+      "bujji"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chakri Bro",
+    "phone": "+919494579256",
+    "aliases": [
+      "chakri bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chandana",
+    "phone": "+919848702404",
+    "aliases": [
+      "chandana"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chandhrudu",
+    "phone": "+916281007456",
+    "aliases": [
+      "chandhrudu"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chandu",
+    "phone": "+919390598179",
+    "aliases": [
+      "chandu"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chandu Mech",
+    "phone": "8074244325",
+    "aliases": [
+      "chandu mech"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Charan Roomate",
+    "phone": "9063803717",
+    "aliases": [
+      "charan roomate"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chinnu",
+    "phone": "9502708923",
+    "aliases": [
+      "chinnu"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chintu",
+    "phone": "+919032555822",
+    "aliases": [
+      "chintu"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Chintu Bro @ Hosanna",
+    "phone": "+919030055405",
+    "aliases": [
+      "chintu bro @ hosanna"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Clarina",
+    "phone": "9709370576",
+    "aliases": [
+      "clarina"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Code In Tech Intern",
+    "phone": "+918074194666",
+    "aliases": [
+      "code in tech intern"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Conplexx",
+    "phone": "8688379746",
+    "aliases": [
+      "conplexx"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "DSP IT",
+    "phone": "+918179718827",
+    "aliases": [
+      "dsp it"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dad👑",
+    "phone": "8121295345",
+    "aliases": [
+      "dad👑"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Daniel",
+    "phone": "+917793908665",
+    "aliases": [
+      "daniel"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Darling Dheeraj",
+    "phone": "9182810929",
+    "aliases": [
+      "darling dheeraj"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Deekshitha Varshini",
+    "phone": "+917780641257",
+    "aliases": [
+      "deekshitha varshini"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Deliveryinsta",
+    "phone": "590416",
+    "aliases": [
+      "deliveryinsta"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Denm Mam",
+    "phone": "+918618799545",
+    "aliases": [
+      "denm mam"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Depakkkkkk",
+    "phone": "+917995198602",
+    "aliases": [
+      "depakkkkkk"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Devansh Aim",
+    "phone": "+919652203699",
+    "aliases": [
+      "devansh aim"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Devi Akka",
+    "phone": "+919398547658",
+    "aliases": [
+      "devi akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dhana Akka",
+    "phone": "+918497901265",
+    "aliases": [
+      "dhana akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dhanush Ece",
+    "phone": "+918919389421",
+    "aliases": [
+      "dhanush ece"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dheeraj",
+    "phone": "+919390929674",
+    "aliases": [
+      "dheeraj"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dheeraj Bff",
+    "phone": "+919390929674",
+    "aliases": [
+      "dheeraj bff"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dhoni",
+    "phone": "+918639496729",
+    "aliases": [
+      "dhoni"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dhruv Aiml",
+    "phone": "+918179198700",
+    "aliases": [
+      "dhruv aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Dinesh Stanza",
+    "phone": "+919154584539",
+    "aliases": [
+      "dinesh stanza"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Eahwar",
+    "phone": "6304179485",
+    "aliases": [
+      "eahwar"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Eamcet Online",
+    "phone": "7989348431",
+    "aliases": [
+      "eamcet online"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Eshwarrrr",
+    "phone": "+917036775628",
+    "aliases": [
+      "eshwarrrr"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Fast & Furious",
+    "phone": "+918686994043",
+    "aliases": [
+      "fast & furious"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Fire",
+    "phone": "101",
+    "aliases": [
+      "fire"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Food Stories Biryani",
+    "phone": "+916305153875",
+    "aliases": [
+      "food stories biryani"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gagan Stanza",
+    "phone": "+916305591225",
+    "aliases": [
+      "gagan stanza"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Geetansh Aiml",
+    "phone": "8367679959",
+    "aliases": [
+      "geetansh aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Ghar The Cloud Kitchen",
+    "phone": "+919100863933",
+    "aliases": [
+      "ghar the cloud kitchen"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gizmeek",
+    "phone": "+919022690226",
+    "aliases": [
+      "gizmeek"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gopi",
+    "phone": "+919573800382",
+    "aliases": [
+      "gopi"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gopi Bro",
+    "phone": "+919032294370",
+    "aliases": [
+      "gopi bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gopi Brooo Uk",
+    "phone": "+447774608592",
+    "aliases": [
+      "gopi brooo uk"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gopi Mahith",
+    "phone": "+919948009521",
+    "aliases": [
+      "gopi mahith"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gopinath Bro",
+    "phone": "8520012347",
+    "aliases": [
+      "gopinath bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gopinath Bro2",
+    "phone": "+919494561327",
+    "aliases": [
+      "gopinath bro2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Goutham Bro",
+    "phone": "9705914973",
+    "aliases": [
+      "goutham bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Goutham Igf",
+    "phone": "9390452705",
+    "aliases": [
+      "goutham igf"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gouthammmmmmm",
+    "phone": "6303181690",
+    "aliases": [
+      "gouthammmmmmm"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Gowtham Stanza",
+    "phone": "+918555860896",
+    "aliases": [
+      "gowtham stanza"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Guptha Ji",
+    "phone": "+918341284036",
+    "aliases": [
+      "guptha ji"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Guru Ji",
+    "phone": "+917075476367",
+    "aliases": [
+      "guru ji"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Harsha (Rishi)",
+    "phone": "+918143244520",
+    "aliases": [
+      "harsha (rishi)"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Harsha Sv",
+    "phone": "9989407661",
+    "aliases": [
+      "harsha sv"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Hassan Cbit",
+    "phone": "+918520965033",
+    "aliases": [
+      "hassan cbit"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Hemanth Aiml",
+    "phone": "+919059124533",
+    "aliases": [
+      "hemanth aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Hemanth Mgit",
+    "phone": "+919346721048",
+    "aliases": [
+      "hemanth mgit"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Hostel",
+    "phone": "+919886938988",
+    "aliases": [
+      "hostel"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "I_vinay _10k",
+    "phone": "+917731815432",
+    "aliases": [
+      "i_vinay _10k"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Immanuel Suvishal",
+    "phone": "+919573638118",
+    "aliases": [
+      "immanuel suvishal"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Item Aiml",
+    "phone": "+918897979606",
+    "aliases": [
+      "item aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jack",
+    "phone": "8309878168",
+    "aliases": [
+      "jack"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jacob Bro Fas",
+    "phone": "+919618119923",
+    "aliases": [
+      "jacob bro fas"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jagadeesh",
+    "phone": "+919704568508",
+    "aliases": [
+      "jagadeesh"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jairam Chem",
+    "phone": "+918309407005",
+    "aliases": [
+      "jairam chem"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jashwanth Cr(J) Aiml",
+    "phone": "+918978031570",
+    "aliases": [
+      "jashwanth cr(j) aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jayadheer Always Music",
+    "phone": "9381124587",
+    "aliases": [
+      "jayadheer always music"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jee Mains Ismayel",
+    "phone": "9848340779",
+    "aliases": [
+      "jee mains ismayel"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jeevan Mech",
+    "phone": "+919347628535",
+    "aliases": [
+      "jeevan mech"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jinnu Candy",
+    "phone": "+918639332004",
+    "aliases": [
+      "jinnu candy"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jio Delivery",
+    "phone": "954216678",
+    "aliases": [
+      "jio delivery"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jio-Tele-verification Helpline",
+    "phone": "1977",
+    "aliases": [
+      "jio-tele-verification helpline"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "JioHelpline",
+    "phone": "1991",
+    "aliases": [
+      "jiohelpline"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jiomart",
+    "phone": "9542166789",
+    "aliases": [
+      "jiomart"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Joy Vadhina",
+    "phone": "+919347949044",
+    "aliases": [
+      "joy vadhina"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jyothi Akka",
+    "phone": "+917672040627",
+    "aliases": [
+      "jyothi akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jyothi Akka 2",
+    "phone": "9133023882",
+    "aliases": [
+      "jyothi akka 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Jyothi Pedhamma",
+    "phone": "6304531318",
+    "aliases": [
+      "jyothi pedhamma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "K BADRI NARAYANA",
+    "phone": "7673960651",
+    "aliases": [
+      "k badri narayana"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "K.Vamshi Mohan",
+    "phone": "+919014067765",
+    "aliases": [
+      "k.vamshi mohan"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Karthik Aids",
+    "phone": "+918374039251",
+    "aliases": [
+      "karthik aids"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Karthik Bro",
+    "phone": "+919704259009",
+    "aliases": [
+      "karthik bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Karthikeya S. V",
+    "phone": "+916309554591",
+    "aliases": [
+      "karthikeya s. v"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kartik",
+    "phone": "9705307806",
+    "aliases": [
+      "kartik"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kartik 2",
+    "phone": "+919100507806",
+    "aliases": [
+      "kartik 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kaushal Aiml",
+    "phone": "9391929116",
+    "aliases": [
+      "kaushal aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kaushik Aiml",
+    "phone": "+919182716402",
+    "aliases": [
+      "kaushik aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kavitha",
+    "phone": "+916281747648",
+    "aliases": [
+      "kavitha"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kavitha Akka",
+    "phone": "+917730806212",
+    "aliases": [
+      "kavitha akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Keshav Bro(Sen) Cse",
+    "phone": "+917995695346",
+    "aliases": [
+      "keshav bro(sen) cse"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kevin Fas",
+    "phone": "+918247772990",
+    "aliases": [
+      "kevin fas"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kiran",
+    "phone": "+918008198579",
+    "aliases": [
+      "kiran"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Koustub",
+    "phone": "+917995902887",
+    "aliases": [
+      "koustub"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Krish Broo",
+    "phone": "+917013618392",
+    "aliases": [
+      "krish broo"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Krish Rebel",
+    "phone": "+917815991232",
+    "aliases": [
+      "krish rebel"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Krishna Aiml",
+    "phone": "+917989526750",
+    "aliases": [
+      "krishna aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Krishnayya Thatha",
+    "phone": "9963615776",
+    "aliases": [
+      "krishnayya thatha"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Kubeer Chem",
+    "phone": "+918978575906",
+    "aliases": [
+      "kubeer chem"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "LIKHITHA Aiml",
+    "phone": "+919391923463",
+    "aliases": [
+      "likhitha aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "LML SUPPORT",
+    "phone": "8485955112",
+    "aliases": [
+      "lml support"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Lahari",
+    "phone": "+919965278278",
+    "aliases": [
+      "lahari"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Lally Aiml",
+    "phone": "+919014940986",
+    "aliases": [
+      "lally aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Laxman Sir",
+    "phone": "9392487376",
+    "aliases": [
+      "laxman sir"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Lishanth Bro",
+    "phone": "+918466003354",
+    "aliases": [
+      "lishanth bro"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Lohith Eee",
+    "phone": "+917702533702",
+    "aliases": [
+      "lohith eee"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Machha",
+    "phone": "7330694120",
+    "aliases": [
+      "machha"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Madhav 2",
+    "phone": "9515711479",
+    "aliases": [
+      "madhav 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Madhav Cat Computers",
+    "phone": "+919493344515",
+    "aliases": [
+      "madhav cat computers"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mahesh",
+    "phone": "7729902820",
+    "aliases": [
+      "mahesh"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mahesh Bro Roomate",
+    "phone": "+916301942662",
+    "aliases": [
+      "mahesh bro roomate"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mahesh Tution",
+    "phone": "+919381156959",
+    "aliases": [
+      "mahesh tution"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mahesh Tution 2",
+    "phone": "+917013345386",
+    "aliases": [
+      "mahesh tution 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mallikarjun Aiml",
+    "phone": "8247551096",
+    "aliases": [
+      "mallikarjun aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mamatha(S)",
+    "phone": "8639344487",
+    "aliases": [
+      "mamatha(s)"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mamayya",
+    "phone": "9949045460",
+    "aliases": [
+      "mamayya"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Manik",
+    "phone": "+919390019639",
+    "aliases": [
+      "manik"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Manohar 10k Coders",
+    "phone": "9059540537",
+    "aliases": [
+      "manohar 10k coders"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Manohar Csm",
+    "phone": "+917780764510",
+    "aliases": [
+      "manohar csm"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Manoj",
+    "phone": "+919885230660",
+    "aliases": [
+      "manoj"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Manoj Cse3",
+    "phone": "7386952300",
+    "aliases": [
+      "manoj cse3"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Manuuu",
+    "phone": "+919866531243",
+    "aliases": [
+      "manuuu"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Martin Fas",
+    "phone": "+919949140009",
+    "aliases": [
+      "martin fas"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Me 2",
+    "phone": "7416008826",
+    "aliases": [
+      "me 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mishmi Fas",
+    "phone": "+919949170306",
+    "aliases": [
+      "mishmi fas"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mohammad Ghani Aiml",
+    "phone": "+916301020630",
+    "aliases": [
+      "mohammad ghani aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mohan Aids",
+    "phone": "9390013604",
+    "aliases": [
+      "mohan aids"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mohan Aiml",
+    "phone": "+917386732030",
+    "aliases": [
+      "mohan aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mohan krishnaaaaaa",
+    "phone": "+918374898429",
+    "aliases": [
+      "mohan krishnaaaaaa"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mohannnn Krishna",
+    "phone": "7396788177",
+    "aliases": [
+      "mohannnn krishna"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Monish",
+    "phone": "+917780475114",
+    "aliases": [
+      "monish"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Mouni Akka",
+    "phone": "+919502959788",
+    "aliases": [
+      "mouni akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Murali Mamayya",
+    "phone": "+919666808629",
+    "aliases": [
+      "murali mamayya"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "M😎a😎c😎h😎a",
+    "phone": "+919705599071",
+    "aliases": [
+      "m😎a😎c😎h😎a"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Naarimani ::::::::::::Nanamma",
+    "phone": "9032367201",
+    "aliases": [
+      "naarimani ::::::::::::nanamma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nanamma",
+    "phone": "9492801895",
+    "aliases": [
+      "nanamma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nanamma 2",
+    "phone": "+917989391831",
+    "aliases": [
+      "nanamma 2"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nanammma",
+    "phone": "+919493261895",
+    "aliases": [
+      "nanammma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nandhishwar",
+    "phone": "6305562288",
+    "aliases": [
+      "nandhishwar"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nani",
+    "phone": "+918886021709",
+    "aliases": [
+      "nani"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nani_10k",
+    "phone": "6300733002",
+    "aliases": [
+      "nani_10k"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Narala Anand Reddy",
+    "phone": "+918688398053",
+    "aliases": [
+      "narala anand reddy"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Narayan Sir",
+    "phone": "+919505743404",
+    "aliases": [
+      "narayan sir"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Naresh Babai",
+    "phone": "+919502913900",
+    "aliases": [
+      "naresh babai"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Naveen",
+    "phone": "+919603886455",
+    "aliases": [
+      "naveen"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Naveen Bro (DS)",
+    "phone": "9392816574",
+    "aliases": [
+      "naveen bro (ds)"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Naveenn",
+    "phone": "+917997868921",
+    "aliases": [
+      "naveenn"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Navi Akka",
+    "phone": "+917032002791",
+    "aliases": [
+      "navi akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Navya Akka",
+    "phone": "8367385298",
+    "aliases": [
+      "navya akka"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Navya Akka Jio",
+    "phone": "9014970712",
+    "aliases": [
+      "navya akka jio"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nexin co-live",
+    "phone": "+917660033366",
+    "aliases": [
+      "nexin co-live"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Niharr",
+    "phone": "+917995508888",
+    "aliases": [
+      "niharr"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nikhil CBIT",
+    "phone": "+917794988728",
+    "aliases": [
+      "nikhil cbit"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nikhith Junior",
+    "phone": "+918466895599",
+    "aliases": [
+      "nikhith junior"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Nithish Junior",
+    "phone": "+919550965166",
+    "aliases": [
+      "nithish junior"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "PRABHAS",
+    "phone": "+917032174289",
+    "aliases": [
+      "prabhas"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pandu Sir Dva",
+    "phone": "+918985847780",
+    "aliases": [
+      "pandu sir dva"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pavan Mech",
+    "phone": "+918074565078",
+    "aliases": [
+      "pavan mech"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pavani Aiml",
+    "phone": "+917780186007",
+    "aliases": [
+      "pavani aiml"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pedhamma",
+    "phone": "9603444421",
+    "aliases": [
+      "pedhamma"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pedhananna",
+    "phone": "+919642832314",
+    "aliases": [
+      "pedhananna"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pencil",
+    "phone": "+917780727640",
+    "aliases": [
+      "pencil"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Philip Annaaaa",
+    "phone": "9177087395",
+    "aliases": [
+      "philip annaaaa"
+    ],
+    "relationship": ""
+  },
+  {
+    "name": "Pinni",
+    "phone": "+916281305434",
+    "aliases": [
+      "pinni"
+    ],
+    "relationship": ""
   }
 ]
