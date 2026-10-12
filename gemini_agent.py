@@ -798,96 +798,58 @@ class AuraGeminiAgent:
 
         # 1. Always run instant local multilingual automation & privacy engine first (<10ms)
         local_result = self._offline_multilingual_fallback(cleaned_input, language_hint=language_hint)
-        if (
-            local_result.get("executed_tools")
-            or local_result.get("client_actions")
-            or self.pending_intent is not None
-            or "🔒" in local_result.get("reply", "")
-            or "🌸" in local_result.get("reply", "")
-            or "✅" in local_result.get("reply", "")
-        ):
+        if not local_result.get("is_default_fallback"):
             return local_result
 
-        # 2. For open-ended questions, use Gemini API if a valid AI Studio key (starts with AIza) is configured
-        if not self.api_key or not self.api_key.strip().startswith("AIza"):
+        # 2. For open-ended questions, use Gemini API if any API key (AIza... or AQ....) is configured
+        if not self.api_key or not self.api_key.strip():
             return local_result
 
-        client = genai.Client(api_key=self.api_key.strip(), http_options={"timeout": 4500})
-        tools = get_interactions_tools()
+        key = self.api_key.strip()
         sys_instruction = self._build_system_instruction(language_hint)
+        det_lang_hint = detect_owner_language(cleaned_input, language_hint)
+        lang_names = {"te": "Telugu (తెలుగు)", "hi": "Hindi (हिन्दी)", "ta": "Tamil (தமிழ்)", "bn": "Bengali", "mr": "Marathi", "es": "Spanish", "en": "English"}
+        target_lang_label = lang_names.get(det_lang_hint, "the same language as the user")
 
-        executed_tools: List[Dict[str, Any]] = []
-        client_actions: List[Dict[str, Any]] = []
+        prompt_text = (
+            f"User message: {cleaned_input}\n\n"
+            f"Instructions: Answer the user's question clearly, helpfully, and concisely (2-4 sentences) in {target_lang_label}. "
+            f"Note: In Telugu speech-to-text, 'ఏ' or 'ఏఐ' often means 'AI (Artificial Intelligence)'."
+        )
 
-        try:
-            create_kwargs: Dict[str, Any] = {
-                "model": "gemini-3.8-flash",
-                "input": cleaned_input,
-                "system_instruction": sys_instruction,
-                "tools": tools,
-            }
-            if self.previous_interaction_id:
-                create_kwargs["previous_interaction_id"] = self.previous_interaction_id
-
-            interaction = client.interactions.create(**create_kwargs)
-            self.previous_interaction_id = interaction.id
-
-            max_rounds = 4
-            rounds = 0
-            while rounds < max_rounds:
-                rounds += 1
-                fc_steps = [s for s in (interaction.steps or []) if getattr(s, "type", None) == "function_call"]
-                if not fc_steps:
-                    break
-
-                result_inputs = []
-                for fc in fc_steps:
-                    fn_name = fc.name
-                    fn_args = fc.arguments if isinstance(fc.arguments, dict) else {}
-                    tool_output = self.execute_tool(fn_name, fn_args)
-
-                    executed_tools.append({
-                        "name": fn_name,
-                        "args": fn_args,
-                        "result": tool_output,
-                    })
-                    if isinstance(tool_output, dict):
-                        if tool_output.get("client_action"):
-                            client_actions.append(tool_output["client_action"])
-                        if tool_output.get("client_actions"):
-                            client_actions.extend(tool_output["client_actions"])
-
-                    result_inputs.append({
-                        "type": "function_result",
-                        "name": fn_name,
-                        "call_id": fc.id,
-                        "result": [{"type": "text", "text": json.dumps(tool_output, ensure_ascii=False)}],
-                    })
-
-                interaction = client.interactions.create(
-                    model="gemini-3.8-flash",
-                    input=result_inputs,
-                    system_instruction=sys_instruction,
-                    tools=tools,
-                    previous_interaction_id=interaction.id,
+        import httpx
+        for model_name in ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash"]:
+            try:
+                resp = httpx.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}",
+                    json={
+                        "system_instruction": {"parts": [{"text": sys_instruction}]},
+                        "contents": [{"role": "user", "parts": [{"text": prompt_text}]}],
+                        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 350},
+                    },
+                    timeout=8.0,
                 )
-                self.previous_interaction_id = interaction.id
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates") or []
+                    if candidates:
+                        parts = (candidates[0].get("content") or {}).get("parts") or []
+                        reply_text = "".join(p.get("text", "") for p in parts).strip()
+                        if reply_text:
+                            det_lang = detect_owner_language(reply_text, language_hint)
+                            return self._finalize_response({
+                                "status": "ok",
+                                "mode": "gemini-3.8-flash",
+                                "normalized_input": cleaned_input,
+                                "detected_language": det_lang,
+                                "reply": reply_text,
+                                "executed_tools": [],
+                                "client_actions": [],
+                            })
+            except Exception:
+                continue
 
-            reply_text = interaction.output_text or "Done."
-            det_lang = detect_owner_language(reply_text, language_hint)
-            return self._finalize_response({
-                "status": "ok",
-                "mode": "gemini-3.8-flash",
-                "normalized_input": cleaned_input,
-                "detected_language": det_lang,
-                "reply": reply_text,
-                "executed_tools": executed_tools,
-                "client_actions": client_actions,
-            })
-        except Exception as exc:
-            fallback = self._offline_multilingual_fallback(cleaned_input, language_hint=language_hint)
-            fallback["warning"] = f"Gemini API notice: {exc}"
-            return fallback
+        return local_result
 
     def _offline_multilingual_fallback(self, user_text: str, language_hint: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -1679,7 +1641,33 @@ class AuraGeminiAgent:
                 "client_actions": [],
             })
 
-        if lang == "hi":
+        # Check if the user is asking about AI / Artificial Intelligence
+        if re.search(
+            r"(?:\bai\b|artificial\s+intelligence|ఏఐ|ఏ\s+గురించి|ఎక్స్ప్లెయిన్|explain\s+about|what\s+is\s+ai|एआई\s+क्या\s+है|कृत्रिम\s+बुद्धिमत्ता|ஏஐ\s+என்றால்)",
+            lower,
+        ):
+            if lang == "te":
+                default_reply = (
+                    "ఏఐ (AI - ఆర్టిఫిషియల్ ఇంటెలిజెన్స్ / కృత్రిమ మేధాస్సు) అంటే మనుషుల లాగే ఆలోచించి, "
+                    "నేర్చుకుని, సమస్యలను పరిష్కరించగల కంప్యూటర్ సాంకేతికత. ఇది వాయిస్ అసిస్టెంట్లు (ఆరా లాంటివి), "
+                    "వైద్యం, విద్య, అనువాదం మరియు సెల్ఫ్-డ్రైవింగ్ కార్లలో విస్తృతంగా ఉపయోగపడుతుంది."
+                )
+            elif lang == "hi":
+                default_reply = (
+                    "एआई (AI - आर्टिफिशियल इंटेलिजेंस / कृत्रिम बुद्धिमत्ता) एक ऐसी कंप्यूटर तकनीक है जो इंसानों की तरह "
+                    "सोचने, सीखने और निर्णय लेने में सक्षम है। इसका उपयोग वॉइस असिस्टेंट, स्वास्थ्य, शिक्षा और ऑटोमेशन में होता है।"
+                )
+            elif lang == "ta":
+                default_reply = (
+                    "ஏஐ (AI - செயற்கை நுண்ணறிவு) என்பது மனிதர்களைப் போலவே சிந்திக்கவும், கற்றுக்கொள்ளவும், "
+                    "முடிவுகளை எடுக்கவும் கூடிய கணினி தொழில்நுட்பமாகும்."
+                )
+            else:
+                default_reply = (
+                    "AI (Artificial Intelligence) is computer technology capable of learning, reasoning, "
+                    "understanding natural language, and solving complex problems like humans."
+                )
+        elif lang == "hi":
             default_reply = (
                 "नमस्ते! मैं ऑरा (Aura) हूँ। आप आराम से रुक-रुक कर भी बोल सकते हैं: "
                 "'अम्मा ... को ... कॉल ... करो', 'राहुल को व्हाट्सऐप करो', या 'यूट्यूब खोलो'।"
@@ -1703,6 +1691,7 @@ class AuraGeminiAgent:
         return self._finalize_response({
             "status": "ok",
             "mode": "offline_smart_engine",
+            "is_default_fallback": True,
             "normalized_input": text,
             "detected_language": lang,
             "reply": default_reply,

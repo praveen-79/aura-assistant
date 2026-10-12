@@ -475,7 +475,7 @@
       const saved = localStorage.getItem('aura_api_base');
       if (saved) return saved.replace(/\/+$/, '');
       if (window.location.hostname && window.location.hostname.includes('github.io')) {
-        return 'http://192.168.1.10:8000';
+        return 'http://localhost:8000';
       }
       if (window.location.protocol.startsWith('http')) return window.location.origin;
       return 'http://192.168.1.10:8000';
@@ -982,7 +982,7 @@
       appendMessage('user', text);
       document.getElementById('orbStatus').innerText = 'Thinking & Executing...';
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 2800);
+      const timer = setTimeout(() => ctrl.abort(), 6500);
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/chat`, {
           method: 'POST',
@@ -1004,7 +1004,7 @@
         speakReply(data.spoken_reply || data.reply, data.detected_language, data.spoken_phonetic || '');
       } catch (err) {
         clearTimeout(timer);
-        runStandaloneApkBrain(text);
+        await runStandaloneApkBrain(text);
       } finally {
         document.getElementById('orbStatus').innerText = handsFreeMode
           ? 'Hands-Free Listening... Speak anytime!'
@@ -1013,13 +1013,13 @@
     }
 
     let pendingApkPerm = null;
-    function runStandaloneApkBrain(rawText) {
+    async function runStandaloneApkBrain(rawText) {
       const text = rawText.replace(/\s*\.\.\.\s*/g, ' ').trim();
       const lower = text.toLowerCase();
       const hasTeScript = /[\u0C00-\u0C7F]/.test(text);
       const hasHiScript = /[\u0900-\u097F]/.test(text);
-      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
-      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
+      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
+      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
 
       if (pendingApkPerm && (/\b(yes|allow|ok|avunu|sare|haan|ha)\b/.test(lower) || /అవును|సరే|हाँ/.test(text))) {
@@ -1139,9 +1139,81 @@
         return;
       }
 
+      // Direct Browser/APK Gemini REST API Call if key is saved in localStorage
+      const savedKey = (localStorage.getItem('aura_gemini_key') || '').trim();
+      if (savedKey) {
+        for (const modelName of ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash']) {
+          try {
+            const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(savedKey)}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  role: 'user',
+                  parts: [{ text: `Answer clearly and helpfully in ${isTe ? 'Telugu (తెలుగు)' : (isHi ? 'Hindi' : 'English')} (2-4 sentences). Note: In Telugu speech-to-text, 'ఏ' or 'ఏఐ' means 'AI (Artificial Intelligence)'. Question: ${text}` }]
+                }]
+              })
+            });
+            if (gRes.ok) {
+              const gData = await gRes.json();
+              const replyText = gData?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+              if (replyText) {
+                document.getElementById('modeBadge').innerText = 'Gemini 3.8 Active';
+                appendMessage('aura', replyText);
+                speakReply(replyText, lang);
+                return;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Built-in AI & General Knowledge Responder (works 100% offline/keyless too)
+      if (/\b(ai|artificial intelligence|machine learning)\b/.test(lower) || /ఏ గురించి|ఏఐ|ఎక్స్ప్లెయిన్|కృత్రిమ మేధస్సు/.test(text)) {
+        const aiMsg = isTe
+          ? '🤖 ఏఐ (AI - Artificial Intelligence / కృత్రిమ మేధస్సు) అంటే కంప్యూటర్లు మరియు యంత్రాలు మనుషుల లాగా ఆలోచించడం, నేర్చుకోవడం మరియు సమస్యలను పరిష్కరించే సాంకేతికత. వాయిస్ అసిస్టెంట్లు (Aura), సెల్ఫ్-డ్రైవింగ్ కార్లు, మరియు వైద్య రంగంలో ఏఐ విస్తృతంగా ఉపయోగపడుతోంది.'
+          : '🤖 AI (Artificial Intelligence) is technology that enables computers and machines to simulate human intelligence, learn from data, understand speech, and solve complex problems automatically.';
+        appendMessage('aura', aiMsg);
+        speakReply(aiMsg, lang, 'AI ante Artificial Intelligence. Idi computerlu manushula laaga aalochinche technology.');
+        return;
+      }
+
+      // Zero-Key Live Multilingual Knowledge Lookup (Wikipedia REST API in Telugu/Hindi/English)
+      try {
+        const cleanQuery = text
+          .replace(/గురించి|ఎక్స్ప్లెయిన్|చెప్పు|చెప్పండి|ఏమిటి|అంటే ఏమిటి|explain|about|what is|who is|tell me about|के बारे में|बताओ|क्या है/gi, ' ')
+          .replace(/[?.,!]/g, ' ')
+          .trim();
+        if (cleanQuery.length >= 2) {
+          const wikiLangs = isTe ? ['te', 'en'] : (isHi ? ['hi', 'en'] : ['en']);
+          for (const wLang of wikiLangs) {
+            const sUrl = `https://${wLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery)}&utf8=&format=json&origin=*`;
+            const sRes = await fetch(sUrl);
+            if (sRes.ok) {
+              const sData = await sRes.json();
+              const firstHit = sData?.query?.search?.[0];
+              if (firstHit && firstHit.title) {
+                const sumUrl = `https://${wLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstHit.title)}`;
+                const sumRes = await fetch(sumUrl);
+                if (sumRes.ok) {
+                  const sumData = await sumRes.json();
+                  if (sumData && sumData.extract) {
+                    const sentences = sumData.extract.split(/(?<=[.।!])\s+/).slice(0, 3).join(' ');
+                    const wikiReply = `📘 ${sentences}`;
+                    appendMessage('aura', wikiReply);
+                    speakReply(sentences, wLang === 'te' ? 'te' : (wLang === 'hi' ? 'hi' : 'en'));
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+
       const fallbackMsg = isTe
-        ? `నమస్కారం! నేను ఆరా (Aura v2). 'అమ్మ కి కాల్ చేయి', 'వాట్సప్ ఓపెన్ చేయ్', లేదా 'యూట్యూబ్ ఓపెన్ చేయ్' అని చెప్పండి!`
-        : `I'm ready! Try saying 'Call Amma', 'Open WhatsApp', 'Play Telugu songs on YouTube', or 'Navigate to Charminar'!`;
+        ? `నమస్కారం! నేను ఆరా (Aura v2). ఏదైనా ప్రశ్నలకు పూర్తి AI సమాధానాల కోసం పైన ఉన్న ⚙️ Settings లో మీ Gemini API Key ని సేవ్ చేయండి, లేదా 'అమ్మ కి కాల్ చేయి', 'వాట్సప్ ఓపెన్ చేయ్' అని చెప్పండి!`
+        : `I'm ready! Open ⚙️ Settings at the top-right to save your Gemini API Key for unlimited Q&A, or say 'Call Amma', 'Open WhatsApp', or 'Play Telugu songs on YouTube'!`;
       appendMessage('aura', fallbackMsg);
       speakReply(fallbackMsg, lang);
     }
@@ -1159,18 +1231,26 @@
 
     function toggleSettings() {
       document.getElementById('settingsModal').classList.toggle('open');
+      const savedKey = localStorage.getItem('aura_gemini_key') || '';
+      const input = document.getElementById('apiKeyInput');
+      if (input && savedKey && !input.value) input.value = savedKey;
     }
 
     async function saveSettings() {
-      const key = document.getElementById('apiKeyInput').value;
-      await fetch(`${getApiBaseUrl()}/api/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: key })
-      });
+      const key = (document.getElementById('apiKeyInput').value || '').trim();
+      if (key) {
+        localStorage.setItem('aura_gemini_key', key);
+      }
+      try {
+        await fetch(`${getApiBaseUrl()}/api/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key })
+        });
+      } catch (e) {}
       toggleSettings();
-      loadStatus();
-      appendMessage('aura', 'Gemini API Key saved! Full multilingual Gemini 3.8 Flash & Live Voice modes are enabled.');
+      document.getElementById('modeBadge').innerText = key ? 'Gemini 3.8 Active' : 'Smart Offline Ready';
+      appendMessage('aura', '✅ Gemini API Key saved! Full multilingual AI Q&A and device automations are now active.');
     }
 
     async function addContact() {

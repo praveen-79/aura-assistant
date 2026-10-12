@@ -356,3 +356,13 @@ def test_download_apk_endpoint():
     assert "Aura AI Assistant" in page.text
     assert "AuraAssistant.apk" in page.text
 
+
+def test_open_ended_ai_question_telugu_and_english():
+    client = TestClient(app)
+    res = client.post("/api/chat", json={"text": "ఏ గురించి ఎక్స్ప్లెయిన్ చెయ్", "language_hint": "te-IN"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "నమస్కారం! నేను ఆరా" not in data["reply"]
+    assert any(k in data["reply"].lower() for k in ["ఏఐ", "ఆర్టిఫిషియల్", "కృత్రిమ", "ai", "intelligence", "కంప్యూటర్"])
+
+
