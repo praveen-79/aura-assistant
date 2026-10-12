@@ -349,35 +349,38 @@
         </select>
         <button class="icon-btn" id="wakeWordBtn" onclick="toggleHandsFree()">🎙️ Hands-Free: OFF</button>
         <button class="icon-btn" id="liveStreamBtn" onclick="toggleGeminiLiveStream()">⚡ Live WS: OFF</button>
+        <button class="icon-btn" onclick="syncRealPhoneContacts()" style="border-color:var(--green);color:var(--green)">🛡️ Permissions & Real Contacts</button>
+        <button class="icon-btn" onclick="setAsDefaultAssistant()" style="border-color:var(--cyan);color:var(--cyan)">🤖 Set Default Assistant</button>
       </div>
     </section>
 
     <div class="chips">
-      <button class="chip" onclick="sendQuick('Call Amma')">📞 Call Amma</button>
-      <button class="chip" onclick="sendQuick('Amma ko call karo')">🇮🇳 अम्मा को कॉल करो</button>
+      <button class="chip" onclick="syncRealPhoneContacts()">🛡️ Grant Permissions & Sync Phone Contacts</button>
+      <button class="chip" onclick="setAsDefaultAssistant()">🤖 Set Aura as Default AI Assistant</button>
+      <button class="chip" onclick="sendQuick('ఏ గురించి ఎక్స్ప్లెయిన్ చెయ్')">🤖 ఏ గురించి ఎక్స్ప్లెయిన్ చెయ్ (Explain AI)</button>
+      <button class="chip" onclick="sendQuick('నువ్వు ఎవరు? ఏం చేయగలవు?')">👋 నువ్వు ఎవరు? (Who are you?)</button>
       <button class="chip" onclick="sendQuick('Amma ki call chey')">🇮🇳 అమ్మ కి కాల్ చేయి</button>
-      <button class="chip" onclick="sendQuick('Amma ku call pannu')">🇮🇳 அம்மா கு கால் பண்ணு</button>
+      <button class="chip" onclick="sendQuick('Amma ko call karo')">🇮🇳 अम्मा को कॉल करो</button>
+      <button class="chip" onclick="sendQuick('వాట్సప్ ఓపెన్ చేయ్')">💬 వాట్సప్ ఓపెన్ చేయ్ (WhatsApp)</button>
       <button class="chip" onclick="sendQuick('YouTube lo Telugu songs play chey')">🎵 YouTube Telugu Songs</button>
       <button class="chip" onclick="sendQuick('Navigate to Charminar')">🗺️ Navigate to Charminar</button>
       <button class="chip" onclick="sendQuick('Battery entha undi')">🔋 Battery Check (Telugu)</button>
       <button class="chip" onclick="sendQuick('250 plus 475 entha')">🧮 250 + 475 (Telugu Calc)</button>
-      <button class="chip" onclick="sendQuick('Google lo Hyderabad weather search chey')">🔍 Google Search (Telugu)</button>
       <button class="chip" onclick="sendQuick('Kinda ki scroll chey')">👇 Scroll Down (Telugu)</button>
       <button class="chip" onclick="sendQuick('Torch on chey')">🔦 Torch On (Telugu)</button>
-      <button class="chip" onclick="sendQuick('Selfie teeyi')">🤳 Camera (Asks Permission)</button>
       <button class="chip" onclick="sendQuick('Manchi maata cheppu')">🌸 Moral Value (మంచి మాట)</button>
-      <button class="chip" onclick="sendQuick('Paata marchu')">⏭️ Next Song (Telugu)</button>
-      <button class="chip" onclick="sendQuick('Emergency SOS')">🚨 Emergency SOS</button>
-      <button class="chip" onclick="sendQuick('Amma ko WhatsApp karo')">💬 WhatsApp (Multi-Turn)</button>
-      <button class="chip" onclick="sendQuick('Save contact Vikram number 9876501234')">➕ Save Contact by Voice</button>
-      <button class="chip" onclick="sendQuick('Main ghar aa raha hoon')">🏠 घर जा रहा हूँ (Routine)</button>
     </div>
 
     <div class="panel" id="phonePanel">
-      <h4 style="font-size:0.88rem">📱 Install Android APK or Connect via Wi-Fi</h4>
-      <div class="contact-item" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <h4 style="font-size:0.88rem">📱 Android Permissions, Default AI Assistant & APK Setup</h4>
+      <div class="contact-item" style="flex-direction:column;align-items:flex-start;gap:8px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span>📦 <b>Native Android APK:</b></span>
+          <button class="action-btn" onclick="syncRealPhoneContacts()" style="padding:6px 12px;font-size:0.78rem">🛡️ 1. Grant Mic, Contacts & Call Permissions</button>
+          <button class="action-btn" onclick="setAsDefaultAssistant()" style="padding:6px 12px;font-size:0.78rem">🤖 2. Set as Default Digital Assistant</button>
+          <button class="action-btn" onclick="enableAccessibilityService()" style="padding:6px 12px;font-size:0.78rem">♿ 3. Enable Hands-Free Accessibility</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>📦 <b>Native Android APK (v2.1):</b></span>
           <a class="action-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="padding:4px 10px;font-size:0.76rem">📲 Download AuraAssistant.apk</a>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -385,7 +388,6 @@
           <button class="action-btn" style="padding:3px 9px;font-size:0.74rem" onclick="navigator.clipboard.writeText(document.getElementById('mobileUrlCode').innerText)">📋 Copy URL</button>
         </div>
         <div>🔌 <b>Android ADB Bridge:</b> <span id="adbStatusText" style="color:var(--muted)">Checking...</span></div>
-        <small style="color:var(--muted)">Tip: Download <b>AuraAssistant.apk</b> directly to your phone, or open the Wi-Fi URL above in Chrome on your Android phone and tap <b>"Add to Home Screen"</b>.</small>
       </div>
       <h5 style="font-size:0.8rem;color:var(--muted);margin-top:4px">📜 Recent Device Automations</h5>
       <div id="recentActionsList" style="display:flex;flex-direction:column;gap:5px"></div>
@@ -405,9 +407,12 @@
     </div>
 
     <div class="panel" id="contactsPanel">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h4 style="font-size:0.88rem">👥 Saved Contacts (Voice & 1-Tap Call)</h4>
-        <button class="icon-btn" onclick="syncAdbContacts()">🔄 Sync Phone via ADB</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <h4 style="font-size:0.88rem">👥 Real Phone Contacts (Voice & 1-Tap Call)</h4>
+        <div style="display:flex;gap:6px">
+          <button class="icon-btn" onclick="syncRealPhoneContacts()">📱 Sync Real Phone Contacts</button>
+          <button class="icon-btn" onclick="syncAdbContacts()">🔄 Sync via ADB</button>
+        </div>
       </div>
       <div id="contactsList" style="display:flex;flex-direction:column;gap:6px"></div>
     </div>
@@ -501,18 +506,135 @@
       }
     }
 
+    window.realPhoneContacts = JSON.parse(localStorage.getItem('aura_real_contacts') || '[]');
+
+    function getActiveGeminiKey() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlKey = (urlParams.get('key') || '').trim();
+        if (urlKey) {
+          localStorage.setItem('aura_gemini_key', urlKey);
+          return urlKey;
+        }
+      } catch (e) {}
+      const localKey = (localStorage.getItem('aura_gemini_key') || '').trim();
+      if (localKey) return localKey;
+      if (window.AndroidNative && window.AndroidNative.getDefaultApiKey) {
+        try {
+          const apkKey = (window.AndroidNative.getDefaultApiKey() || '').trim();
+          if (apkKey) {
+            localStorage.setItem('aura_gemini_key', apkKey);
+            return apkKey;
+          }
+        } catch (e) {}
+      }
+      return '';
+    }
+
+    function loadNativeApkContacts() {
+      if (window.AndroidNative && window.AndroidNative.getPhoneContactsJson) {
+        try {
+          const raw = window.AndroidNative.getPhoneContactsJson();
+          const parsed = JSON.parse(raw || '[]');
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.realPhoneContacts = parsed;
+            localStorage.setItem('aura_real_contacts', JSON.stringify(parsed));
+            renderContacts(parsed);
+            fetch(`${getApiBaseUrl()}/api/contacts/sync-bulk`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contacts: parsed })
+            }).catch(() => {});
+            return parsed;
+          }
+        } catch (e) {}
+      }
+      return window.realPhoneContacts || [];
+    }
+
+    window.onAndroidPermissionsGranted = function() {
+      const loaded = loadNativeApkContacts();
+      if (loaded.length > 0) {
+        appendMessage('aura', `✅ Phone permissions granted! Loaded ${loaded.length} real contacts directly from your phone.`);
+      } else {
+        appendMessage('aura', '✅ Microphone, Contacts & Call permissions updated!');
+      }
+    };
+
+    async function syncRealPhoneContacts() {
+      if (window.AndroidNative) {
+        if (window.AndroidNative.requestAllPermissions) {
+          window.AndroidNative.requestAllPermissions();
+        }
+        const loaded = loadNativeApkContacts();
+        if (loaded.length > 0) {
+          appendMessage('aura', `📱 Synced ${loaded.length} real contacts from your Android phone! You can now call anyone in your phone by name.`);
+        } else {
+          appendMessage('aura', '🛡️ Please tap "Allow" on the Android permission popup for Microphone, Contacts, and Phone Calls, then tap this button again.');
+        }
+        return;
+      }
+
+      if ('contacts' in navigator && 'ContactsManager' in window) {
+        try {
+          const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+          const cleaned = [];
+          for (const c of (picked || [])) {
+            const cName = (c.name && c.name[0]) ? String(c.name[0]).trim() : '';
+            const cPhone = (c.tel && c.tel[0]) ? String(c.tel[0]).trim() : '';
+            if (cName && cPhone) cleaned.push({ name: cName, phone: cPhone });
+          }
+          if (cleaned.length > 0) {
+            window.realPhoneContacts = cleaned;
+            localStorage.setItem('aura_real_contacts', JSON.stringify(cleaned));
+            renderContacts(cleaned);
+            fetch(`${getApiBaseUrl()}/api/contacts/sync-bulk`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contacts: cleaned })
+            }).catch(() => {});
+            appendMessage('aura', `✅ Imported ${cleaned.length} real contacts from your phone!`);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      document.getElementById('contactsPanel').classList.add('open');
+      syncAdbContacts();
+    }
+
+    function setAsDefaultAssistant() {
+      if (window.AndroidNative && window.AndroidNative.openDefaultAssistantSettings) {
+        window.AndroidNative.openDefaultAssistantSettings();
+        appendMessage('aura', '🤖 Opening Android Default Digital Assistant settings—select "Aura AI Assistant" as your default assistant!');
+      } else {
+        appendMessage('aura', 'ℹ️ To set Aura as your system-wide Default Digital Assistant on Android, install and open AuraAssistant.apk, then tap "🤖 Set Default Assistant".');
+      }
+    }
+
+    function enableAccessibilityService() {
+      if (window.AndroidNative && window.AndroidNative.openAccessibilitySettings) {
+        window.AndroidNative.openAccessibilitySettings();
+        appendMessage('aura', '♿ Opening Android Accessibility settings—enable "Aura AI Hands-Free Assistant" for screen scrolling & cross-app automation.');
+      } else {
+        appendMessage('aura', 'ℹ️ Install AuraAssistant.apk on your Android phone to enable the native Accessibility Service.');
+      }
+    }
+
     async function loadStatus() {
+      const activeKey = getActiveGeminiKey();
+      const nativeContacts = loadNativeApkContacts();
       const apiBase = getApiBaseUrl();
       const serverInput = document.getElementById('apiServerInput');
       if (serverInput) serverInput.value = apiBase;
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 2000);
+      const timer = setTimeout(() => ctrl.abort(), 2200);
       try {
         const res = await fetch(`${apiBase}/api/status`, { signal: ctrl.signal });
         clearTimeout(timer);
         if (!res.ok) throw new Error('Status ' + res.status);
         const data = await res.json();
-        document.getElementById('modeBadge').innerText = data.has_api_key ? 'Gemini 3.8 Active' : 'Smart Offline Ready';
+        document.getElementById('modeBadge').innerText = (data.has_api_key || activeKey) ? 'Gemini 3.8 Active' : 'Smart Offline Ready';
         if (data.mobile_url) {
           document.getElementById('mobileUrlCode').innerText = data.mobile_url;
         }
@@ -520,20 +642,15 @@
         if (adbEl) {
           adbEl.innerText = data.adb && data.adb.connected
             ? `Connected (${(data.adb.devices || []).join(', ')})`
-            : 'Simulated / Deep-Link Mode (Connect USB/Wi-Fi ADB for direct hardware dial)';
+            : (window.AndroidNative ? 'Native Android Bridge Active (Direct Hardware Control)' : 'Web / Deep-Link Mode');
         }
-        renderContacts(data.contacts || []);
+        renderContacts(nativeContacts.length > 0 ? nativeContacts : (data.contacts || []));
         renderRoutines(data.workflows || []);
         renderRecentActions(data.recent_actions || []);
       } catch (e) {
         clearTimeout(timer);
-        document.getElementById('modeBadge').innerText = 'Offline Standalone';
-        renderContacts([
-          { name: 'Amma (Mom)', phone: '+919876543210' },
-          { name: 'Appa (Dad)', phone: '+919876543211' },
-          { name: 'Rahul Sharma', phone: '+919811122233' },
-          { name: 'Priya Patel', phone: '+919822233344' }
-        ]);
+        document.getElementById('modeBadge').innerText = activeKey ? 'Gemini 3.8 Active' : 'Smart Standalone Ready';
+        renderContacts(nativeContacts);
       }
     }
 
@@ -556,7 +673,11 @@
     function renderContacts(contacts) {
       const container = document.getElementById('contactsList');
       container.innerHTML = '';
-      for (const c of contacts) {
+      if (!contacts || contacts.length === 0) {
+        container.innerHTML = `<div class="contact-item"><span>No phone contacts synced yet.</span><button class="action-btn" onclick="syncRealPhoneContacts()">📱 Sync Real Phone Contacts</button></div>`;
+        return;
+      }
+      for (const c of contacts.slice(0, 60)) {
         const row = document.createElement('div');
         row.className = 'contact-item';
         row.innerHTML = `
@@ -851,8 +972,9 @@
     function triggerNativeAndroidBridge(toolName, args, result) {
       if (!window.AndroidNative) return;
       try {
-        if (toolName === 'make_phone_call' && (result?.phone_number || args?.contact_name_or_number)) {
-          window.AndroidNative.callContact(result?.phone_number || args?.contact_name_or_number);
+        if (toolName === 'make_phone_call' && (args?.contact_name_or_number || result?.contact_name || result?.phone_number)) {
+          const queryTarget = args?.contact_name_or_number || result?.contact_name || result?.phone_number;
+          window.AndroidNative.callContact(queryTarget);
         } else if (toolName === 'control_device_setting' && args?.setting === 'flashlight') {
           window.AndroidNative.setTorch(args?.action !== 'off');
         } else if (toolName === 'set_alarm_or_timer' && args?.mode === 'alarm') {
@@ -981,6 +1103,16 @@
       if (!text.trim()) return;
       appendMessage('user', text);
       document.getElementById('orbStatus').innerText = 'Thinking & Executing...';
+
+      const isCallIntent = /\b(call|phone|dial)\b/i.test(text) || /కాల్|ఫోన్|कॉल|கால்/.test(text);
+      if (isCallIntent && (window.AndroidNative || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
+        await runStandaloneApkBrain(text);
+        document.getElementById('orbStatus').innerText = handsFreeMode
+          ? 'Hands-Free Listening... Speak anytime!'
+          : 'Tap the Orb & speak at your own pace';
+        return;
+      }
+
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 6500);
       try {
@@ -1018,8 +1150,8 @@
       const lower = text.toLowerCase();
       const hasTeScript = /[\u0C00-\u0C7F]/.test(text);
       const hasHiScript = /[\u0900-\u097F]/.test(text);
-      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
-      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
+      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi|evaru)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
+      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai|kaun)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
 
       if (pendingApkPerm && (/\b(yes|allow|ok|avunu|sare|haan|ha)\b/.test(lower) || /అవును|సరే|हाँ/.test(text))) {
@@ -1072,25 +1204,99 @@
       }
 
       if (/\b(call|phone|dial)\b/.test(lower) || /కాల్|ఫోన్|कॉल|கால்/.test(text)) {
-        const contacts = { amma: '+919876543210', mom: '+919876543210', rahul: '+919811122233', priya: '+919822233344', dad: '+919876543211', nanna: '+919876543211', appa: '+919876543211' };
-        let target = 'Amma';
-        if (/రాహుల్|राहुल|ராகுல்|rahul/.test(lower)) target = 'Rahul';
-        else if (/ప్రియా|प्रिया|பிரியா|priya/.test(lower)) target = 'Priya';
-        else if (/నాన్న|అప్పా|पापा|dad|nanna|appa/.test(lower)) target = 'Appa';
-        const num = (window.AndroidNative && window.AndroidNative.callContact) ? window.AndroidNative.callContact(contacts[target.toLowerCase()] || '+919876543210') : (contacts[target.toLowerCase()] || '+919876543210');
-        const msg = isTe ? `📞 ${target} (${num}) కి కాల్ చేస్తున్నాను.` : (isHi ? `📞 ${target} (${num}) को कॉल कर रही हूँ।` : `📞 Calling ${target} (${num}) now.`);
-        appendMessage('aura', msg, [{ label: `Call ${target}`, url: `tel:${num}`, auto_trigger: true }]);
-        speakReply(msg, lang, `Calling ${target}`);
+        let targetName = text
+          .replace(/^(?:hey\s+aura|aura|please|can\s+you)\s+/i, '')
+          .replace(/\b(?:call|phone|dial|to|ko|ki|ku|karo|chey|cheyi|cheyandi|pannu|laga|lagao)\b/gi, ' ')
+          .replace(/కి|కు|కాల్|ఫోన్|చేయి|చేయ్|చేయండి|को|कॉल|फोन|करो|लगाओ|கு|கால்|பண்ணு/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (/అమ్మ|अम्मा|அம்மா|\b(amma|mom|mummy)\b/i.test(text)) targetName = 'Amma';
+        else if (/నాన్న|అప్పా|पापा|அப்பா|\b(nanna|appa|dad|papa)\b/i.test(text)) targetName = 'Nanna';
+        if (!targetName) targetName = 'Amma';
+
+        // 1. Native Android APK: Lookup REAL contact in phone's ContactsContract
+        if (window.AndroidNative && window.AndroidNative.callContact) {
+          const nativeRes = String(window.AndroidNative.callContact(targetName) || '');
+          if (nativeRes.startsWith('FOUND:')) {
+            const parts = nativeRes.slice(6).split('|');
+            const cName = parts[0] || targetName;
+            const cNum = parts[1] || '';
+            const msg = isTe ? `📞 మీ ఫోన్ కాంటాక్ట్స్ నుండి ${cName} (${cNum}) కి కాల్ చేస్తున్నాను.` : `📞 Calling ${cName} (${cNum}) from your phone contacts.`;
+            appendMessage('aura', msg, [{ label: `Call ${cName}`, url: `tel:${cNum}`, auto_trigger: false }]);
+            speakReply(msg, lang, `Calling ${cName}`);
+            return;
+          } else {
+            const msg = isTe
+              ? `⚠️ మీ ఫోన్ కాంటాక్ట్స్‌లో "${targetName}" కనిపించలేదు. దయచేసి పైన ఉన్న "🛡️ Permissions & Real Contacts" బటన్ నొక్కి Contacts అనుమతి ఇవ్వండి.`
+              : `⚠️ "${targetName}" was not found in your phone contacts. Tap "🛡️ Permissions & Real Contacts" at the top to grant Contacts access.`;
+            appendMessage('aura', msg);
+            speakReply(msg, lang);
+            return;
+          }
+        }
+
+        // 2. Web Browser: Search user's synced realPhoneContacts
+        const realList = window.realPhoneContacts || [];
+        const tLow = targetName.toLowerCase();
+        const foundReal = realList.find(c => c.name && (c.name.toLowerCase() === tLow || c.name.toLowerCase().includes(tLow)));
+        if (foundReal) {
+          const msg = isTe ? `📞 ${foundReal.name} (${foundReal.phone}) కి కాల్ చేస్తున్నాను.` : `📞 Calling ${foundReal.name} (${foundReal.phone}) now.`;
+          appendMessage('aura', msg, [{ label: `Call ${foundReal.name}`, url: `tel:${foundReal.phone}`, auto_trigger: true }]);
+          speakReply(msg, lang, `Calling ${foundReal.name}`);
+          return;
+        }
+
+        const noContactMsg = isTe
+          ? `📱 "${targetName}" ఫోన్ నంబర్ కోసం పైన ఉన్న "🛡️ Permissions & Real Contacts" బటన్ నొక్కి మీ ఫోన్ కాంటాక్ట్స్ సింక్ చేయండి.`
+          : `📱 To call "${targetName}" using your real phone contacts, tap "🛡️ Permissions & Real Contacts" at the top to sync your phonebook.`;
+        appendMessage('aura', noContactMsg);
+        speakReply(noContactMsg, lang);
         return;
       }
 
-      const mathMatch = lower.match(/(\d+)\s*(plus|\+|minus|-|into|\*|times)\s*(\d+)/);
+      const mathMatch = lower.match(/(\d+)\s*(plus|\+|minus|-|into|\*|times|divided by|\/)\s*(\d+)/);
       if (mathMatch) {
         const a = parseFloat(mathMatch[1]), b = parseFloat(mathMatch[3]), op = mathMatch[2];
-        const ans = (op === 'plus' || op === '+') ? a + b : ((op === 'minus' || op === '-') ? a - b : a * b);
+        const ans = (op === 'plus' || op === '+') ? a + b : ((op === 'minus' || op === '-') ? a - b : ((op === '/' || op === 'divided by') ? (b !== 0 ? +(a / b).toFixed(2) : 0) : a * b));
         const msg = isTe ? `🧮 సమాధానం: ${ans}` : `🧮 The answer is ${ans}.`;
         appendMessage('aura', msg);
         speakReply(msg, lang, `The answer is ${ans}`);
+        return;
+      }
+
+      if (/\b(time)\b/.test(lower) || /టైమ్|సమయం|समय|कितने बजे/.test(text)) {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const msg = isTe ? `⏰ ఇప్పుడు సమయం ${nowStr}.` : (isHi ? `⏰ अभी समय ${nowStr} है।` : `⏰ The current time is ${nowStr}.`);
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(date|today)\b/.test(lower) || /తేదీ|తారీఖు|तारीख/.test(text)) {
+        const dStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const msg = isTe ? `📅 ఈరోజు తేదీ: ${dStr}.` : `📅 Today's date is ${dStr}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(who are you|your name|what can you do|help)\b/.test(lower) || /నువ్వు ఎవరు|మీరు ఎవరు|ఏం చేయగలవు|तुम कौन हो|क्या कर सकते हो/.test(text)) {
+        const msg = isTe
+          ? '🤖 నమస్కారం! నేను ఆరా (Aura v2.1) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp/YouTube/Maps ఓపెన్ చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
+          : (isHi
+            ? '🤖 नमस्ते! मैं ऑरा (Aura v2.1) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल कर सकती हूँ, ऐप्स खोल सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
+            : '🤖 Hello! I am Aura v2.1, your multilingual Android AI Assistant. I can call your real phone contacts, open apps like WhatsApp/YouTube/Maps, control hardware settings, and answer any question in Telugu, Hindi, Tamil, and English!');
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
+        return;
+      }
+
+      if (/\b(how are you|bagunnava|ela unnav)\b/.test(lower) || /ఎలా ఉన్నావు|బాగున్నావా|कैसे हो/.test(text)) {
+        const msg = isTe
+          ? '😊 నేను చాలా బాగున్నాను! ధన్యవాదాలు. మీకు నేను ఎలా సహాయం చేయగలను?'
+          : (isHi ? '😊 मैं बहुत अच्छी हूँ! बताइए, आज मैं आपकी क्या मदद कर सकती हूँ?' : '😊 I am doing great, thank you! How can I help you today?');
+        appendMessage('aura', msg);
+        speakReply(msg, lang);
         return;
       }
 
@@ -1139,8 +1345,8 @@
         return;
       }
 
-      // Direct Browser/APK Gemini REST API Call if key is saved in localStorage
-      const savedKey = (localStorage.getItem('aura_gemini_key') || '').trim();
+      // Direct Browser/APK Gemini REST API Call using localStorage key OR built-in APK key from .env
+      const savedKey = getActiveGeminiKey();
       if (savedKey) {
         for (const modelName of ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash']) {
           try {

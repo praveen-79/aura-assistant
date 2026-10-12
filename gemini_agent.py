@@ -1339,15 +1339,42 @@ class AuraGeminiAgent:
                 "client_actions": client_actions,
             })
 
-        # 5. Detect Open App intent
+        # 5. Detect Open App intent (supports English, Telugu, Hindi, Tamil script & Romanized speech)
         open_patterns = [
-            r"^([a-z0-9\s]+?)\s+(?:kholo|chalu karo|open karo|open chey|open cheyandi|teruvu|open pannu|thira|खोलो|चालू करो|ఓపెన్ చేయి|తెరువు|திற)$",
-            r"^(?:open|launch|start|abre)\s+([a-z0-9\s]+)$",
+            r"^(.+?)\s+(?:kholo|chalu\s*karo|open\s*karo|open\s*chey|open\s*cheyi|open\s*cheya|open\s*cheyandi|teruvu|open\s*pannu|thira|खोलो|चालू\s*करो|ఓపెన్\s*చేయి|ఓపెన్\s*చేయ్|తెరువు|திற)$",
+            r"^(?:open|launch|start|abre)\s+(.+)$",
         ]
         for pat in open_patterns:
-            open_match = re.search(pat, collapse_stt_gaps(lower))
+            open_match = re.search(pat, lower) or re.search(pat, collapse_stt_gaps(lower))
             if open_match:
-                app_name = open_match.group(1).strip()
+                raw_app = open_match.group(1).strip()
+                app_map = {
+                    "వాట్సప్": "whatsapp",
+                    "వాట్సాప్": "whatsapp",
+                    "vaatsap": "whatsapp",
+                    "whatsap": "whatsapp",
+                    "व्हाट्सएप": "whatsapp",
+                    "व्हाट्सऐप": "whatsapp",
+                    "வாட்ஸ்அப்": "whatsapp",
+                    "యూట్యూబ్": "youtube",
+                    "యుట్యూబ్": "youtube",
+                    "yutyub": "youtube",
+                    "yuutyub": "youtube",
+                    "यूट्यूब": "youtube",
+                    "யூடியூப்": "youtube",
+                    "మ్యాప్స్": "google maps",
+                    "గూగుల్ మ్యాప్స్": "google maps",
+                    "मैप्स": "google maps",
+                    "కెమెరా": "camera",
+                    "कैमरा": "camera",
+                    "గ్యాలరీ": "gallery",
+                    "ఫోటోలు": "photos",
+                }
+                app_name = app_map.get(raw_app, raw_app)
+                for k_indic, v_eng in app_map.items():
+                    if k_indic in raw_app:
+                        app_name = v_eng
+                        break
                 res = self.automation.open_android_app(app_name)
                 if res.get("status") == "blocked_for_privacy":
                     return self._finalize_response({
@@ -1629,7 +1656,7 @@ class AuraGeminiAgent:
             })
 
         # 8. Time & Date Queries
-        if any(w in lower for w in ["time", "समय", "kitne baje", "hora", "టైమ్", "సమయం", "entha", "நேரம்"]):
+        if any(w in lower for w in ["time", "समय", "kitne baje", "hora", "టైమ్", "సమయం", "time entha", "நேரம்"]):
             now_str = datetime.datetime.now().strftime("%I:%M %p")
             return self._finalize_response({
                 "status": "ok",

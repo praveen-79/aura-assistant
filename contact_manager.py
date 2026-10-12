@@ -224,22 +224,43 @@ class ContactManager:
 
     def add_contact(self, name: str, phone: str, aliases: Optional[List[str]] = None, relationship: str = "") -> Contact:
         clean_phone = re.sub(r"[^\d+]", "", phone)
+        name_clean = name.strip()
+        name_lower = name_clean.lower()
+
+        for idx, existing in enumerate(self.contacts):
+            if existing.name.lower() == name_lower or name_lower in [a.lower() for a in existing.aliases]:
+                merged_aliases = list(dict.fromkeys((aliases or []) + existing.aliases + [name_lower]))
+                updated = Contact(
+                    name=name_clean,
+                    phone=clean_phone,
+                    aliases=merged_aliases,
+                    relationship=relationship or existing.relationship,
+                    match_score=1.0,
+                )
+                self.contacts[idx] = updated
+                self.save_contacts()
+                return updated
+
         contact = Contact(
-            name=name.strip(),
+            name=name_clean,
             phone=clean_phone,
-            aliases=aliases or [name.lower().strip()],
+            aliases=aliases or [name_lower],
             relationship=relationship,
             match_score=1.0,
         )
-        for idx, existing in enumerate(self.contacts):
-            if existing.name.lower() == contact.name.lower():
-                self.contacts[idx] = contact
-                self.save_contacts()
-                return contact
-
         self.contacts.append(contact)
         self.save_contacts()
         return contact
+
+    def sync_bulk_contacts(self, items: List[dict]) -> dict:
+        imported = 0
+        for item in items:
+            name = str(item.get("name", "")).strip()
+            phone = str(item.get("phone", "")).strip()
+            if name and phone:
+                self.add_contact(name=name, phone=phone)
+                imported += 1
+        return {"status": "ok", "imported_count": imported, "total_contacts": len(self.contacts)}
 
     def search(self, query: str, threshold: float = 0.55) -> List[Contact]:
         """

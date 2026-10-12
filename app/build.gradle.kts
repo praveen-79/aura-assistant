@@ -7,12 +7,21 @@ android {
     namespace = "com.aura.assistant"
     compileSdk = 36
 
+    val envFile = rootProject.file(".env")
+    val geminiKeyFromEnv = if (envFile.exists()) {
+        envFile.readLines()
+            .firstOrNull { it.trim().startsWith("GEMINI_API_KEY=") }
+            ?.substringAfter("GEMINI_API_KEY=")
+            ?.trim() ?: ""
+    } else ""
+
     defaultConfig {
         applicationId = "com.aura.assistant"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1.0"
+        resValue("string", "default_gemini_key", geminiKeyFromEnv)
     }
 
     compileOptions {

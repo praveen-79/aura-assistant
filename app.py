@@ -216,6 +216,17 @@ async def add_contact_endpoint(req: ContactRequest):
     return {"status": "ok", "contact": added.to_dict(), "contacts": [c.to_dict() for c in contact_manager.contacts]}
 
 
+class BulkContactsRequest(BaseModel):
+    contacts: List[Dict[str, str]]
+
+
+@app.post("/api/contacts/sync-bulk")
+async def sync_contacts_bulk(req: BulkContactsRequest):
+    res = contact_manager.sync_bulk_contacts(req.contacts)
+    res["contacts"] = [c.to_dict() for c in contact_manager.contacts]
+    return res
+
+
 @app.post("/api/contacts/sync-adb")
 async def sync_contacts_adb():
     res = contact_manager.sync_from_android_adb()

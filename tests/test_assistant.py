@@ -366,3 +366,23 @@ def test_open_ended_ai_question_telugu_and_english():
     assert any(k in data["reply"].lower() for k in ["ఏఐ", "ఆర్టిఫిషియల్", "కృత్రిమ", "ai", "intelligence", "కంప్యూటర్"])
 
 
+def test_real_phone_contacts_bulk_sync_and_telugu_script_app_open(tmp_path):
+    cm = ContactManager(tmp_path / "contacts.json")
+    sync_res = cm.sync_bulk_contacts([
+        {"name": "Amma", "phone": "+919440112233"},
+        {"name": "Kiran Rao", "phone": "+919000112233"},
+    ])
+    assert sync_res["status"] == "ok"
+    assert sync_res["imported_count"] == 2
+    matches = cm.search("అమ్మ")
+    assert len(matches) >= 1
+    assert matches[0].phone == "+919440112233"
+
+    client = TestClient(app)
+    wa = client.post("/api/chat", json={"text": "వాట్సప్ ఓపెన్ చేయ్", "language_hint": "te-IN"})
+    assert wa.status_code == 200
+    wa_data = wa.json()
+    assert any(t["name"] == "open_android_app" and t["args"]["app_name"] == "whatsapp" for t in wa_data["executed_tools"])
+
+
+
