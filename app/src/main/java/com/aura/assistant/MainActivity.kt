@@ -44,15 +44,20 @@ class MainActivity : AppCompatActivity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url?.toString() ?: return false
+                    if (url.startsWith("file://") || url.contains("localhost") || url.contains(":8000")) {
+                        return false
+                    }
                     if (url.startsWith("tel:")) {
                         placeDirectCall(url.removePrefix("tel:"))
                         return true
                     }
-                    if (url.startsWith("whatsapp://") || url.startsWith("sms:") || url.startsWith("https://wa.me/")) {
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        startActivity(intent)
                         return true
+                    } catch (e: Exception) {
+                        return false
                     }
-                    return false
                 }
 
                 override fun onReceivedError(
@@ -134,6 +139,35 @@ class MainActivity : AppCompatActivity() {
         fun navigateMaps(destination: String) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=${Uri.encode(destination)}"))
             startActivity(intent)
+        }
+
+        @JavascriptInterface
+        fun openApp(appName: String) {
+            val key = appName.trim().lowercase()
+            val pkg = when {
+                "whatsapp" in key || "vaatsap" in key || "వాట్సప్" in key -> "com.whatsapp"
+                "youtube" in key || "యుట్యూబ్" in key || "యూట్యూబ్" in key -> "com.google.android.youtube"
+                "map" in key || "మ్యాప్" in key -> "com.google.android.apps.maps"
+                "insta" in key -> "com.instagram.android"
+                "spotify" in key -> "com.spotify.music"
+                else -> null
+            }
+            if (pkg != null) {
+                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                    return
+                }
+            }
+            val fallbackUrl = when {
+                "whatsapp" in key || "vaatsap" in key -> "whatsapp://"
+                "youtube" in key -> "https://www.youtube.com"
+                "map" in key -> "https://maps.google.com"
+                else -> "https://play.google.com/store/search?q=" + Uri.encode(appName) + "&c=apps"
+            }
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl)))
+            } catch (e: Exception) {}
         }
     }
 }

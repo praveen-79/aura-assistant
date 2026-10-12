@@ -37,6 +37,50 @@ ANDROID_APP_PACKAGES: Dict[str, Dict[str, str]] = {
     "messages": {"package": "com.google.android.apps.messaging", "deeplink": "sms:"},
 }
 
+APP_ALIASES: Dict[str, str] = {
+    # WhatsApp
+    "vaatsap": "whatsapp",
+    "vaatsapp": "whatsapp",
+    "vaats app": "whatsapp",
+    "whatsap": "whatsapp",
+    "whatsup": "whatsapp",
+    "watsapp": "whatsapp",
+    "watsap": "whatsapp",
+    "వాట్సప్": "whatsapp",
+    "వాట్సాప్": "whatsapp",
+    "व्हाट्सएप": "whatsapp",
+    "வாட்ஸ்அப்": "whatsapp",
+    # YouTube
+    "yuutyuub": "youtube",
+    "yuutyub": "youtube",
+    "youtub": "youtube",
+    "utube": "youtube",
+    "yt": "youtube",
+    "యూట్యూబ్": "youtube",
+    "యుట్యూబ్": "youtube",
+    "యూట్యూబ్": "youtube",
+    "यूट्यूब": "youtube",
+    "யூடியூப்": "youtube",
+    # Maps
+    "maaps": "maps",
+    "myaaps": "maps",
+    "మ్యాప్స్": "maps",
+    "మేప్స్": "maps",
+    # Camera
+    "kemer": "camera",
+    "kemera": "camera",
+    "కెమెరా": "camera",
+    "कैमरा": "camera",
+    # Settings
+    "settimgs": "settings",
+    "settimg": "settings",
+    "సెట్టింగ్స్": "settings",
+    # Instagram
+    "insta": "instagram",
+    "instaa": "instagram",
+    "ఇన్‌స్టాగ్రామ్": "instagram",
+}
+
 
 def parse_bounds(bounds_str: str) -> Optional[tuple[int, int]]:
     """
@@ -294,12 +338,20 @@ class AndroidAutomationEngine:
                 "app_name": app_name,
                 "message": "Explicit owner permission is required before accessing Photos, Gallery, or Files.",
             }
-        app_info = ANDROID_APP_PACKAGES.get(key)
+
+        # Resolve aliases (e.g. "vaatsap" -> "whatsapp", "yuutyuub" -> "youtube")
+        lookup_key = key
+        for alias, canon in APP_ALIASES.items():
+            if alias in key:
+                lookup_key = canon
+                break
+
+        app_info = ANDROID_APP_PACKAGES.get(lookup_key)
 
         # Partial match if exact key not found
         if not app_info:
             for known_name, info in ANDROID_APP_PACKAGES.items():
-                if key in known_name or known_name in key:
+                if lookup_key in known_name or known_name in lookup_key:
                     app_info = info
                     break
 
@@ -312,16 +364,23 @@ class AndroidAutomationEngine:
             ])
 
         deeplink = (app_info or {}).get("deeplink")
-        client_action = (
-            {
-                "kind": "open_url",
-                "url": deeplink,
-                "label": f"Open {app_name.title()}",
-                "auto_trigger": not adb_ok,
-            }
-            if deeplink
-            else None
-        )
+        if not deeplink:
+            if lookup_key == "whatsapp":
+                deeplink = "whatsapp://"
+            elif lookup_key == "youtube":
+                deeplink = "https://www.youtube.com"
+            elif lookup_key in {"maps", "google maps"}:
+                deeplink = "https://maps.google.com"
+            else:
+                deeplink = f"https://play.google.com/store/search?q={urllib.parse.quote(app_name)}&c=apps"
+
+        display_name = (lookup_key if lookup_key in ANDROID_APP_PACKAGES else app_name).title()
+        client_action = {
+            "kind": "open_url",
+            "url": deeplink,
+            "label": f"Open {display_name}",
+            "auto_trigger": True,
+        }
 
         self._record_action(
             action_type="app",

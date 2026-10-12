@@ -844,6 +844,8 @@
           window.AndroidNative.openYouTube(args.query);
         } else if (toolName === 'navigate_to_location' && args?.destination && window.AndroidNative.navigateMaps) {
           window.AndroidNative.navigateMaps(args.destination);
+        } else if (toolName === 'open_android_app' && window.AndroidNative.openApp) {
+          window.AndroidNative.openApp(args?.app_name || (result && result.app_name) || '');
         }
       } catch (e) {}
     }
@@ -934,10 +936,18 @@
         if (act && act.url) {
           const card = document.createElement('div');
           card.className = 'action-card';
-          card.innerHTML = `<span>⚡ ${act.label}</span><a class="action-btn" href="${act.url}">Execute Now</a>`;
+          card.innerHTML = `<span>⚡ ${act.label}</span><a class="action-btn" href="${act.url}" target="_blank">Execute Now</a>`;
           box.appendChild(card);
-          if (act.auto_trigger && (act.url.startsWith('tel:') || act.url.startsWith('whatsapp://') || act.url.startsWith('sms:'))) {
-            setTimeout(() => { window.location.href = act.url; }, 650);
+          if (act.auto_trigger) {
+            setTimeout(() => {
+              try {
+                if (window.AndroidNative && window.AndroidNative.openApp && act.label && act.label.toLowerCase().includes('open')) {
+                  window.AndroidNative.openApp(act.label.replace(/^open\s+/i, ''));
+                } else {
+                  window.location.href = act.url;
+                }
+              } catch (e) {}
+            }, 650);
           }
         }
       }
