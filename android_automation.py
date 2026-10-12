@@ -22,19 +22,38 @@ from contact_manager import ContactManager
 ANDROID_APP_PACKAGES: Dict[str, Dict[str, str]] = {
     "whatsapp": {"package": "com.whatsapp", "deeplink": "whatsapp://"},
     "youtube": {"package": "com.google.android.youtube", "deeplink": "vnd.youtube://"},
+    "youtube shorts": {"package": "com.google.android.youtube", "deeplink": "https://www.youtube.com/shorts"},
     "instagram": {"package": "com.instagram.android", "deeplink": "instagram://app"},
+    "instagram reels": {"package": "com.instagram.android", "deeplink": "instagram://reels_home"},
+    "reels": {"package": "com.instagram.android", "deeplink": "instagram://reels_home"},
     "spotify": {"package": "com.spotify.music", "deeplink": "spotify://"},
+    "jiosaavn": {"package": "com.jio.media.jiobeats", "deeplink": "https://www.jiosaavn.com"},
     "maps": {"package": "com.google.android.apps.maps", "deeplink": "geo:0,0?q="},
     "google maps": {"package": "com.google.android.apps.maps", "deeplink": "geo:0,0?q="},
     "chrome": {"package": "com.android.chrome", "deeplink": "googlechrome://"},
     "gmail": {"package": "com.google.android.gm", "deeplink": "googlegmail://"},
+    "snapchat": {"package": "com.snapchat.android", "deeplink": "snapchat://"},
+    "telegram": {"package": "org.telegram.messenger", "deeplink": "tg://"},
+    "facebook": {"package": "com.facebook.katana", "deeplink": "fb://"},
+    "twitter": {"package": "com.twitter.android", "deeplink": "twitter://"},
+    "linkedin": {"package": "com.linkedin.android", "deeplink": "linkedin://"},
+    "amazon": {"package": "in.amazon.mShop.android.shopping", "deeplink": "https://www.amazon.in"},
+    "flipkart": {"package": "com.flipkart.android", "deeplink": "https://www.flipkart.com"},
+    "swiggy": {"package": "in.swiggy.android", "deeplink": "https://www.swiggy.com"},
+    "zomato": {"package": "com.application.zomato", "deeplink": "https://www.zomato.com"},
+    "uber": {"package": "com.ubercab", "deeplink": "uber://"},
+    "ola": {"package": "com.olacabs.customer", "deeplink": "https://book.olacabs.com"},
+    "netflix": {"package": "com.netflix.mediaclient", "deeplink": "nflx://"},
+    "hotstar": {"package": "in.startv.hotstar", "deeplink": "https://www.hotstar.com"},
     "camera": {"package": "com.android.camera", "action": "android.media.action.IMAGE_CAPTURE"},
     "settings": {"package": "com.android.settings", "action": "android.settings.SETTINGS"},
     "clock": {"package": "com.google.android.deskclock", "action": "android.intent.action.SHOW_ALARMS"},
     "alarm": {"package": "com.google.android.deskclock", "action": "android.intent.action.SHOW_ALARMS"},
     "calculator": {"package": "com.google.android.calculator", "action": "android.intent.action.MAIN"},
+    "calendar": {"package": "com.google.android.calendar", "action": "android.intent.action.MAIN"},
     "phone": {"package": "com.google.android.dialer", "deeplink": "tel:"},
     "messages": {"package": "com.google.android.apps.messaging", "deeplink": "sms:"},
+    "play store": {"package": "com.android.vending", "deeplink": "market://search?q="},
 }
 
 APP_ALIASES: Dict[str, str] = {
@@ -58,9 +77,9 @@ APP_ALIASES: Dict[str, str] = {
     "yt": "youtube",
     "యూట్యూబ్": "youtube",
     "యుట్యూబ్": "youtube",
-    "యూట్యూబ్": "youtube",
     "यूट्यूब": "youtube",
     "யூடியூப்": "youtube",
+    "shorts": "youtube shorts",
     # Maps
     "maaps": "maps",
     "myaaps": "maps",
@@ -79,6 +98,15 @@ APP_ALIASES: Dict[str, str] = {
     "insta": "instagram",
     "instaa": "instagram",
     "ఇన్‌స్టాగ్రామ్": "instagram",
+    "ఇన్స్టాగ్రామ్": "instagram",
+    "ఇన్‌స్టా": "instagram",
+    "ఇన్స్టా": "instagram",
+    "इंस्टाग्राम": "instagram",
+    "इंस्टा": "instagram",
+    "reel": "instagram reels",
+    "reels": "instagram reels",
+    "రీల్స్": "instagram reels",
+    "రీల్": "instagram reels",
 }
 
 
@@ -339,12 +367,18 @@ class AndroidAutomationEngine:
                 "message": "Explicit owner permission is required before accessing Photos, Gallery, or Files.",
             }
 
-        # Resolve aliases (e.g. "vaatsap" -> "whatsapp", "yuutyuub" -> "youtube")
+        # Resolve exact key or longest alias first (so "instagram reels" stays "instagram reels")
         lookup_key = key
-        for alias, canon in APP_ALIASES.items():
-            if alias in key:
-                lookup_key = canon
-                break
+        if key not in ANDROID_APP_PACKAGES:
+            if "reel" in key or "రీల్" in key or "रील" in key:
+                lookup_key = "instagram reels"
+            elif "short" in key or "షార్ట్" in key:
+                lookup_key = "youtube shorts"
+            else:
+                for alias, canon in sorted(APP_ALIASES.items(), key=lambda kv: len(kv[0]), reverse=True):
+                    if alias in key:
+                        lookup_key = canon
+                        break
 
         app_info = ANDROID_APP_PACKAGES.get(lookup_key)
 
@@ -357,11 +391,19 @@ class AndroidAutomationEngine:
 
         adb_ok = False
         if app_info and "package" in app_info:
-            adb_ok, _ = self._run_adb([
-                "shell", "monkey",
-                "-p", app_info["package"],
-                "-c", "android.intent.category.LAUNCHER", "1",
-            ])
+            if lookup_key == "instagram reels":
+                adb_ok, _ = self._run_adb([
+                    "shell", "am", "start",
+                    "-a", "android.intent.action.VIEW",
+                    "-d", "instagram://reels_home",
+                    "com.instagram.android",
+                ])
+            if not adb_ok:
+                adb_ok, _ = self._run_adb([
+                    "shell", "monkey",
+                    "-p", app_info["package"],
+                    "-c", "android.intent.category.LAUNCHER", "1",
+                ])
 
         deeplink = (app_info or {}).get("deeplink")
         if not deeplink:
@@ -371,6 +413,8 @@ class AndroidAutomationEngine:
                 deeplink = "https://www.youtube.com"
             elif lookup_key in {"maps", "google maps"}:
                 deeplink = "https://maps.google.com"
+            elif lookup_key == "instagram":
+                deeplink = "instagram://app"
             else:
                 deeplink = f"https://play.google.com/store/search?q={urllib.parse.quote(app_name)}&c=apps"
 
@@ -384,15 +428,88 @@ class AndroidAutomationEngine:
 
         self._record_action(
             action_type="app",
-            title=f"Opening {app_name.title()}",
+            title=f"Opening {display_name}",
             detail=(app_info or {}).get("package", app_name),
             client_action=client_action,
         )
 
         return {
             "status": "launched",
-            "app_name": app_name,
+            "app_name": lookup_key if lookup_key in ANDROID_APP_PACKAGES else app_name,
             "package": (app_info or {}).get("package", "custom"),
+            "executed_via": "adb" if adb_ok else "mobile_deeplink",
+            "client_action": client_action,
+        }
+
+    def open_app_with_query(self, app_name: str, query: str) -> Dict[str, Any]:
+        """
+        Executes a compound App + Search/Action command (e.g., 'open instagram and search prabhas',
+        'open amazon and search wireless earbuds', 'open spotify and play kesariya').
+        """
+        key = app_name.strip().lower()
+        q = query.strip()
+        enc_q = urllib.parse.quote(q)
+
+        if "youtube" in key or "yt" in key:
+            return self.play_youtube_media(q)
+        if "map" in key:
+            return self.navigate_to_location(q)
+        if "insta" in key:
+            if "reel" in q.lower():
+                return self.open_android_app("instagram reels")
+            handle = q.lstrip("@").strip()
+            url = (
+                f"instagram://user?username={urllib.parse.quote(handle)}"
+                if " " not in handle
+                else f"https://www.instagram.com/explore/search/keyword/?q={enc_q}"
+            )
+            pkg = "com.instagram.android"
+            label = f"Instagram Search: {q}"
+        elif "spotify" in key:
+            url = f"spotify:search:{enc_q}"
+            pkg = "com.spotify.music"
+            label = f"Spotify Play/Search: {q}"
+        elif "amazon" in key:
+            url = f"https://www.amazon.in/s?k={enc_q}"
+            pkg = "in.amazon.mShop.android.shopping"
+            label = f"Amazon Search: {q}"
+        elif "flipkart" in key:
+            url = f"https://www.flipkart.com/search?q={enc_q}"
+            pkg = "com.flipkart.android"
+            label = f"Flipkart Search: {q}"
+        elif "swiggy" in key:
+            url = f"https://www.swiggy.com/search?query={enc_q}"
+            pkg = "in.swiggy.android"
+            label = f"Swiggy Search: {q}"
+        elif "zomato" in key:
+            url = f"https://www.zomato.com/search?q={enc_q}"
+            pkg = "com.application.zomato"
+            label = f"Zomato Search: {q}"
+        elif "chrome" in key or "google" in key or "browser" in key:
+            return self.search_google_web(q)
+        else:
+            url = f"https://www.google.com/search?q={urllib.parse.quote(app_name + ' ' + q)}"
+            pkg = "com.android.chrome"
+            label = f"Open {app_name.title()}: {q}"
+
+        adb_ok, _ = self._run_adb([
+            "shell", "am", "start",
+            "-a", "android.intent.action.VIEW",
+            "-d", url,
+            pkg,
+        ])
+        client_action = {
+            "kind": "open_url",
+            "url": url,
+            "label": label,
+            "auto_trigger": not adb_ok,
+        }
+        self._record_action(action_type="app_query", title=label, detail=url, client_action=client_action)
+        return {
+            "status": "launched",
+            "app_name": app_name,
+            "query": q,
+            "package": pkg,
             "executed_via": "adb" if adb_ok else "mobile_deeplink",
             "client_action": client_action,
         }

@@ -425,5 +425,57 @@ def test_whatsapp_multiturn_and_select_commands(tmp_path):
     assert any(t["name"] == "tap_screen_element" for t in sel_te["executed_tools"])
 
 
+def test_real_instagram_and_multi_input_compound_commands(tmp_path):
+    cm = ContactManager(tmp_path / "contacts.json")
+    cm.add_contact("Babbi", "+918341040627", aliases=["babbi"])
+    engine = AndroidAutomationEngine(cm)
+    agent = AuraGeminiAgent(engine, api_key="")
 
+    # 1. "open instagram" -> opens real com.instagram.android (instagram://app), NOT mock modal
+    insta_res = agent.chat_with_tools("open instagram")
+    assert any(
+        t["name"] == "open_android_app" and t["result"]["package"] == "com.instagram.android"
+        for t in insta_res["executed_tools"]
+    )
+    assert insta_res["client_actions"][0]["url"] == "instagram://app"
 
+    # 2. "open instagram and open reels" -> opens real instagram://reels_home
+    reels_res = agent.chat_with_tools("open instagram and open reels")
+    assert any(
+        t["name"] == "open_android_app" and t["args"]["app_name"] == "instagram reels"
+        for t in reels_res["executed_tools"]
+    )
+    assert reels_res["client_actions"][0]["url"] == "instagram://reels_home"
+
+    # 3. Compound App + Task: "open whatsapp and send hii to babbi"
+    wa_comp = agent.chat_with_tools("open whatsapp and send hii to babbi")
+    assert any(
+        t["name"] == "send_whatsapp_message" and t["result"]["phone_number"] == "+918341040627"
+        for t in wa_comp["executed_tools"]
+    )
+
+    # 4. Compound App + Search: "open instagram and search prabhas"
+    insta_q = agent.chat_with_tools("open instagram and search prabhas")
+    assert any(
+        t["name"] == "open_app_with_query" and t["args"]["query"] == "prabhas"
+        for t in insta_q["executed_tools"]
+    )
+
+    # 5. Compound App + Play: "open youtube and play telugu songs"
+    yt_q = agent.chat_with_tools("open youtube and play telugu songs")
+    assert any(
+        t["name"] == "play_youtube_media" and "telugu songs" in t["args"]["query"].lower()
+        for t in yt_q["executed_tools"]
+    )
+
+    # 6. Chained 2-Step Command: "turn on flashlight and check battery"
+    chained = agent.chat_with_tools("turn on flashlight and check battery")
+    tool_names = [t["name"] for t in chained["executed_tools"]]
+    assert "control_device_setting" in tool_names
+    assert "get_battery_status" in tool_names
+
+    # 7. Chained 2-Step Command: "open instagram and turn on flashlight"
+    chained2 = agent.chat_with_tools("open instagram and turn on flashlight")
+    tool_names2 = [t["name"] for t in chained2["executed_tools"]]
+    assert "open_android_app" in tool_names2
+    assert "control_device_setting" in tool_names2

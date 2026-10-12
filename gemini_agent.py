@@ -783,8 +783,8 @@ class AuraGeminiAgent:
 
     def chat_with_tools(self, user_text: str, language_hint: Optional[str] = None) -> Dict[str, Any]:
         """
-        Normalizes Indian speech gaps/pauses first, then processes via `gemini-3.8-flash`
-        or the local multilingual smart engine.
+        Normalizes Indian speech gaps/pauses first, then processes single or multi-input
+        chained commands via `gemini-3.8-flash` or the local multilingual smart engine.
         """
         normalized_input = normalize_indian_utterance(user_text)
         cleaned_input = re.sub(
@@ -795,6 +795,31 @@ class AuraGeminiAgent:
         ).strip()
         if not cleaned_input:
             cleaned_input = normalized_input
+
+        # Check if the user gave 2 or more chained commands (e.g., "open instagram and turn on flashlight",
+        # "turn on flashlight and check battery", "open whatsapp and send hii to babbi and open youtube")
+        sub_commands = self._split_multi_commands(cleaned_input)
+        if len(sub_commands) > 1 and not self.pending_intent:
+            combined_tools: List[Dict[str, Any]] = []
+            combined_actions: List[Dict[str, Any]] = []
+            combined_replies: List[str] = []
+            det_lang = detect_owner_language(cleaned_input, language_hint)
+            for sub_cmd in sub_commands:
+                sub_res = self._offline_multilingual_fallback(sub_cmd, language_hint=language_hint)
+                combined_tools.extend(sub_res.get("executed_tools") or [])
+                combined_actions.extend(sub_res.get("client_actions") or [])
+                if sub_res.get("reply"):
+                    combined_replies.append(sub_res["reply"])
+            if combined_tools or len(combined_replies) > 1:
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": cleaned_input,
+                    "detected_language": det_lang,
+                    "reply": " | ".join(combined_replies),
+                    "executed_tools": combined_tools,
+                    "client_actions": combined_actions,
+                })
 
         # 1. Always run instant local multilingual automation & privacy engine first (<10ms)
         local_result = self._offline_multilingual_fallback(cleaned_input, language_hint=language_hint)
@@ -851,10 +876,63 @@ class AuraGeminiAgent:
 
         return local_result
 
+    @staticmethod
+    def _split_multi_commands(text: str) -> List[str]:
+        """
+        Splits a multi-input utterance into sequential commands when joined by
+        'and', 'then', 'after that', 'also', 'mariyu', 'tarvata', 'aur', 'phir',
+        while keeping 'open <app> and <in-app task>' together as one compound App+Task command.
+        """
+        raw_parts = re.split(
+            r"\s+(?:and\s+then|then|after\s+that|also|and|mariyu|tarvata|aur|phir|మరియు|తర్వాత|और|फिर)\s+",
+            text.strip(),
+            flags=re.IGNORECASE,
+        )
+        if len(raw_parts) <= 1:
+            return [text.strip()]
+
+        action_start_re = re.compile(
+            r"^(?:open|launch|start|call|phone|dial|send|whatsapp|message|msg|sms|play|search|find|show|watch|navigate|go\s+to|directions\s+to|turn\s+on|turn\s+off|switch\s+on|switch\s+off|enable|disable|set|check|scroll|swipe|select|click|tap|volume|mute|unmute|what\s+is|who\s+is|tell\s+me|calculate|battery|time|date|torch|flashlight|hii|hi|hello)\b",
+            flags=re.IGNORECASE,
+        )
+        indic_action_re = re.compile(
+            r"(?:కాల్|ఫోన్|వాట్సప్|మెసేజ్|ఓపెన్|తెరువు|ప్లే|స్క్రోల్|సెలెక్ట్|బ్యాటరీ|టార్చ్|టైమ్|कॉल|व्हाट्सएप|खोलो|चलाओ|बैटरी|टॉर्च|\b(?:chey|cheyi|karo|pampu|bhejo|kholo|teruvu|entha|batao)\b)",
+            flags=re.IGNORECASE,
+        )
+        in_app_task_re = re.compile(
+            r"^(?:send|message|msg|text|say|play|search|find|show|watch|open\s+reels|reels|navigate|directions\s+to|go\s+to|order|buy|hii|hi|hello)\b",
+            flags=re.IGNORECASE,
+        )
+        open_app_only_re = re.compile(
+            r"^(?:open|launch|start)\s+([a-zA-Z0-9\s\u0C00-\u0C7F\u0900-\u097F]+)$",
+            flags=re.IGNORECASE,
+        )
+
+        merged: List[str] = []
+        i = 0
+        while i < len(raw_parts):
+            curr = raw_parts[i].strip()
+            if i + 1 < len(raw_parts):
+                nxt = raw_parts[i + 1].strip()
+                # Keep "open <app>" + "<in-app task>" together as one compound command
+                if open_app_only_re.match(curr) and in_app_task_re.match(nxt):
+                    merged.append(f"{curr} and {nxt}")
+                    i += 2
+                    continue
+                # Only split if the next clause looks like a valid command/question
+                if not (action_start_re.search(nxt) or indic_action_re.search(nxt)):
+                    raw_parts[i + 1] = f"{curr} and {nxt}"
+                    i += 1
+                    continue
+            merged.append(curr)
+            i += 1
+
+        return [m for m in merged if m]
+
     def _offline_multilingual_fallback(self, user_text: str, language_hint: Optional[str] = None) -> Dict[str, Any]:
         """
         Comprehensive local multilingual intent & automation parser resilient to word gaps,
-        plus multi-turn conversational slot filling (`pending_intent`).
+        plus multi-turn conversational slot filling (`pending_intent`) and compound App+Action execution.
         """
         text = normalize_indian_utterance(user_text)
         lower = text.lower()
@@ -1183,17 +1261,137 @@ class AuraGeminiAgent:
                 "client_actions": client_actions,
             })
 
+        # 1b. Compound App + Task Intent ("open <app> and <do action>" / "<app> open chesi <do action>")
+        compound_app_match = re.search(
+            r"^(?:open|launch|start)\s+([a-zA-Z0-9\s\u0C00-\u0C7F\u0900-\u097F]+?)\s+(?:and|then|mariyu|aur|మరియు|और)\s+(.+)$",
+            lower,
+            flags=re.IGNORECASE,
+        )
+        if compound_app_match:
+            c_app = compound_app_match.group(1).strip()
+            c_task = compound_app_match.group(2).strip()
+            # 1) "open whatsapp and send hii to babbi" / "open whatsapp and message babbi hello"
+            if any(w in c_app for w in ["whatsapp", "vaatsap", "whatsap", "వాట్సప్", "వాట్సాప్", "व्हाट्सएप"]):
+                wa_m1 = re.search(r"^(?:send\s+)?(?:a\s+)?(?:message|msg|text)?\s*(.+?)\s+to\s+([a-zA-Z0-9\u0C00-\u0C7F\u0900-\u097F_]+)$", c_task)
+                wa_m2 = re.search(r"^(?:send\s+)?(?:a\s+)?(?:message|msg|text)\s+to\s+([a-zA-Z0-9\u0C00-\u0C7F\u0900-\u097F_]+)\s+(?:saying|that|as|:)?\s*(.+)$", c_task)
+                wa_m3 = re.search(r"^(?:message|msg|text|say)\s+([a-zA-Z0-9\u0C00-\u0C7F\u0900-\u097F_]+)\s+(.+)$", c_task)
+                target_name, msg_body = "", ""
+                if wa_m2:
+                    target_name, msg_body = wa_m2.group(1).strip(), wa_m2.group(2).strip()
+                elif wa_m1 and not wa_m1.group(1).strip().startswith("to "):
+                    msg_body, target_name = wa_m1.group(1).strip(), wa_m1.group(2).strip()
+                elif wa_m3:
+                    target_name, msg_body = wa_m3.group(1).strip(), wa_m3.group(2).strip()
+                else:
+                    # Try matching any known contact name in c_task
+                    tokens = [t for t in re.split(r"\W+", c_task) if len(t) >= 2 and t not in {"send", "message", "msg", "to", "in", "on", "saying", "that"}]
+                    for tok in reversed(tokens):
+                        found_c = self.automation.contacts.search(tok)
+                        if found_c and found_c[0].match_score >= 0.85:
+                            target_name = found_c[0].name
+                            msg_body = re.sub(rf"\b{re.escape(tok)}\b", "", c_task, flags=re.IGNORECASE)
+                            msg_body = re.sub(r"\b(?:send|message|msg|text|to|saying|that)\b", "", msg_body, flags=re.IGNORECASE).strip()
+                            break
+                if target_name and msg_body:
+                    res = self.automation.send_whatsapp_message(target_name, msg_body)
+                    executed_tools.append({
+                        "name": "send_whatsapp_message",
+                        "args": {"contact_name_or_number": target_name, "message": msg_body},
+                        "result": res,
+                    })
+                    if res.get("client_action"):
+                        client_actions.append(res["client_action"])
+                    reply = tpl["whatsapp"].format(name=res.get("contact_name", target_name), msg=msg_body)
+                    return self._finalize_response({
+                        "status": "ok",
+                        "mode": "offline_smart_engine",
+                        "normalized_input": text,
+                        "detected_language": lang,
+                        "reply": reply,
+                        "executed_tools": executed_tools,
+                        "client_actions": client_actions,
+                    })
+
+            # 2) "open youtube and play/search <query>"
+            if any(w in c_app for w in ["youtube", "yt", "యూట్యూబ్", "యుట్యూబ్", "यूट्यूब"]):
+                q = re.sub(r"^(?:play|search|watch|find|show|for)\s+", "", c_task, flags=re.IGNORECASE).strip() or c_task
+                res = self.automation.play_youtube_media(q)
+                executed_tools.append({"name": "play_youtube_media", "args": {"query": q}, "result": res})
+                if res.get("client_action"):
+                    client_actions.append(res["client_action"])
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": text,
+                    "detected_language": lang,
+                    "reply": tpl["youtube"].format(query=q.title()),
+                    "executed_tools": executed_tools,
+                    "client_actions": client_actions,
+                })
+
+            # 3) "open maps and navigate to <dest>"
+            if any(w in c_app for w in ["map", "maps", "మ్యాప్", "मैप"]):
+                dest = re.sub(r"^(?:navigate\s+to|go\s+to|directions\s+to|search|find|show\s+route\s+to)\s+", "", c_task, flags=re.IGNORECASE).strip() or c_task
+                res = self.automation.navigate_to_location(dest)
+                executed_tools.append({"name": "navigate_to_location", "args": {"destination": dest}, "result": res})
+                if res.get("client_action"):
+                    client_actions.append(res["client_action"])
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": text,
+                    "detected_language": lang,
+                    "reply": tpl["navigate"].format(dest=dest.title()),
+                    "executed_tools": executed_tools,
+                    "client_actions": client_actions,
+                })
+
+            # 4) "open instagram/spotify/amazon/flipkart/swiggy/zomato/chrome and search/play/open <query>"
+            if any(w in c_app for w in ["insta", "spotify", "amazon", "flipkart", "swiggy", "zomato", "chrome", "google", "browser", "play store"]):
+                if "insta" in c_app and ("reel" in c_task or "రీల్" in c_task):
+                    res = self.automation.open_android_app("instagram reels")
+                    executed_tools.append({"name": "open_android_app", "args": {"app_name": "instagram reels"}, "result": res})
+                    if res.get("client_action"):
+                        client_actions.append(res["client_action"])
+                    return self._finalize_response({
+                        "status": "ok",
+                        "mode": "offline_smart_engine",
+                        "normalized_input": text,
+                        "detected_language": lang,
+                        "reply": tpl["open_app"].format(app="Instagram Reels"),
+                        "executed_tools": executed_tools,
+                        "client_actions": client_actions,
+                    })
+                q = re.sub(r"^(?:search\s+for|search|play|find|show|watch|open|order|buy|look\s+for)\s+", "", c_task, flags=re.IGNORECASE).strip() or c_task
+                res = self.automation.open_app_with_query(c_app, q)
+                executed_tools.append({"name": "open_app_with_query", "args": {"app_name": c_app, "query": q}, "result": res})
+                if res.get("client_action"):
+                    client_actions.append(res["client_action"])
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": text,
+                    "detected_language": lang,
+                    "reply": f"{tpl['open_app'].format(app=c_app.title())} ({q})",
+                    "executed_tools": executed_tools,
+                    "client_actions": client_actions,
+                })
+
         # 2. Detect WhatsApp intent (check full command, contact-only command, and no-contact command)
         wa_patterns = [
             r"^(.+?)\s+(?:ko|ku|ki|को|కి|கு)\s+(?:whatsapp|వాట్సప్|వాట్సాప్|व्हाट्सएप|व्हाट्सऐप)\s+(?:lo\s+|par\s+|pe\s+|లో\s+|पर\s+)?(?:karo|bhejo|message\s*karo|message\s*bhejo|message\s*pampu|chey|cheyi|cheyandi|pampu|pannu|करो|भेजो|చేయి|పంపు|మెసేజ్\s*పంపు|பண்ணு)\s+(.+)$",
             r"^(?:send\s+)?(?:a\s+)?(?:whatsapp\s+message|message\s+(?:in|on|via)\s+whatsapp|whatsapp)\s+(?:to\s+)?(\S+)\s+(?:saying|that|message|:)?\s*(.+)$",
-            r"^(?:send\s+)?(?:a\s+)?message\s+to\s+(\S+)\s+(?:in|on|via)\s+whatsapp\s+(?:saying|that|message|:)\s*(.+)$",
+            r"^(?:send\s+)?(?:a\s+)?message\s+to\s+(\S+)\s+(?:in|on|via)\s+whatsapp\s+(?:saying|that|message|:)?\s*(.+)$",
+            r"^send\s+(.+?)\s+to\s+(\S+)\s+(?:in|on|via)\s+whatsapp$",
         ]
-        for pat in wa_patterns:
+        for idx_p, pat in enumerate(wa_patterns):
             wa_match = re.search(pat, lower)
             if wa_match:
-                target_name, msg = wa_match.group(1).strip(), wa_match.group(2).strip()
-                if target_name not in {"in", "on", "to", "message"}:
+                if idx_p == 3:
+                    msg, target_name = wa_match.group(1).strip(), wa_match.group(2).strip()
+                else:
+                    target_name, msg = wa_match.group(1).strip(), wa_match.group(2).strip()
+                if target_name not in {"in", "on", "to", "message"} and msg not in {"message", "a message", "msg", "text", "a text"}:
                     res = self.automation.send_whatsapp_message(target_name, msg)
                     executed_tools.append({
                         "name": "send_whatsapp_message",

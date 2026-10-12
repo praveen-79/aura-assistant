@@ -6,7 +6,9 @@ import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraManager
+import android.media.AudioManager
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.AlarmClock
@@ -432,8 +434,104 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun setTimer(seconds: Int, label: String) {
+            val intent = Intent(AlarmClock.ACTION_SET_TIMER).apply {
+                putExtra(AlarmClock.EXTRA_LENGTH, seconds)
+                putExtra(AlarmClock.EXTRA_MESSAGE, label)
+                putExtra(AlarmClock.EXTRA_SKIP_UI, true)
+            }
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {}
+        }
+
+        @JavascriptInterface
+        fun getRealBatteryStatus(): String {
+            return try {
+                val bm = getSystemService(BatteryManager::class.java)
+                val level = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
+                val charging = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    bm?.isCharging ?: false
+                } else {
+                    false
+                }
+                if (level in 0..100) "$level|$charging" else ""
+            } catch (e: Exception) {
+                ""
+            }
+        }
+
+        @JavascriptInterface
+        fun adjustVolume(action: String): String {
+            return try {
+                val am = getSystemService(AudioManager::class.java) ?: return "ERR"
+                val act = action.trim().lowercase()
+                when {
+                    "up" in act || "raise" in act || "louder" in act || "increase" in act -> {
+                        am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
+                        am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
+                    }
+                    "down" in act || "lower" in act || "quieter" in act || "decrease" in act -> {
+                        am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
+                        am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
+                    }
+                    "mute" in act || "silent" in act -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, AudioManager.FLAG_SHOW_UI)
+                        }
+                    }
+                    "unmute" in act -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, AudioManager.FLAG_SHOW_UI)
+                        }
+                    }
+                }
+                val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                val pct = (cur * 100) / max
+                "$pct%"
+            } catch (e: Exception) {
+                ""
+            }
+        }
+
+        @JavascriptInterface
+        fun openSystemSettings(section: String) {
+            val s = section.trim().lowercase()
+            val actionStr = when {
+                "wifi" in s || "wi-fi" in s || "internet" in s -> Settings.ACTION_WIFI_SETTINGS
+                "bluetooth" in s -> Settings.ACTION_BLUETOOTH_SETTINGS
+                "display" in s || "brightness" in s -> Settings.ACTION_DISPLAY_SETTINGS
+                "sound" in s || "volume" in s || "audio" in s -> Settings.ACTION_SOUND_SETTINGS
+                "location" in s || "gps" in s -> Settings.ACTION_LOCATION_SOURCE_SETTINGS
+                "battery" in s -> Intent.ACTION_POWER_USAGE_SUMMARY
+                else -> Settings.ACTION_SETTINGS
+            }
+            try {
+                startActivity(Intent(actionStr))
+            } catch (e: Exception) {
+                try {
+                    startActivity(Intent(Settings.ACTION_SETTINGS))
+                } catch (ex: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
         fun openYouTube(query: String) {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(query)}"))
+            val cleanQ = query.trim()
+            if (cleanQ.isEmpty()) {
+                openApp("youtube")
+                return
+            }
+            try {
+                val ytIntent = Intent(Intent.ACTION_SEARCH).apply {
+                    setPackage("com.google.android.youtube")
+                    putExtra("query", cleanQ)
+                }
+                startActivity(ytIntent)
+                return
+            } catch (e: Exception) {}
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(cleanQ)}"))
             startActivity(intent)
         }
 
@@ -487,38 +585,188 @@ class MainActivity : AppCompatActivity() {
                 return
             } catch (e: Exception) {}
             try {
+                val launchInsta = packageManager.getLaunchIntentForPackage("com.instagram.android")
+                if (launchInsta != null) {
+                    startActivity(launchInsta)
+                    return
+                }
+            } catch (e: Exception) {}
+            try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/reels/")))
             } catch (e: Exception) {}
         }
 
         @JavascriptInterface
-        fun openApp(appName: String) {
+        fun openAppWithQuery(appName: String, query: String) {
             val key = appName.trim().lowercase()
-            if ("reel" in key || "రీల్" in key) {
-                runOnUiThread {
-                    if (::webView.isInitialized) {
-                        val auto = if ("scroll" in key || "స్క్రోల్" in key) "true" else "false"
-                        webView.evaluateJavascript("if (window.openReelsPlayer) window.openReelsPlayer($auto);", null)
-                    }
-                }
+            val q = query.trim()
+            if (q.isEmpty()) {
+                openApp(appName)
                 return
             }
-            val pkg = when {
-                "whatsapp" in key || "vaatsap" in key || "వాట్సప్" in key || "వాట్సాప్" in key -> "com.whatsapp"
-                "youtube" in key || "యుట్యూబ్" in key || "యూట్యూబ్" in key -> "com.google.android.youtube"
-                "map" in key || "మ్యాప్" in key -> "com.google.android.apps.maps"
-                "insta" in key || "ఇన్‌స్టా" in key || "ఇన్స్టా" in key -> "com.instagram.android"
-                "spotify" in key -> "com.spotify.music"
-                "chrome" in key || "browser" in key -> "com.android.chrome"
-                "gmail" in key || "mail" in key -> "com.google.android.gm"
-                else -> null
-            }
-            if (pkg != null) {
-                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-                if (launchIntent != null) {
-                    startActivity(launchIntent)
+            when {
+                "youtube" in key || "yt" in key || "యూట్యూబ్" in key || "యుట్యూబ్" in key -> {
+                    openYouTube(q)
                     return
                 }
+                "map" in key || "మ్యాప్" in key -> {
+                    navigateMaps(q)
+                    return
+                }
+                "insta" in key || "ఇన్‌స్టా" in key || "ఇన్స్టా" in key -> {
+                    if ("reel" in q.lowercase() || "రీల్" in q) {
+                        openExternalReels()
+                        return
+                    }
+                    val cleanHandle = q.replace("@", "").trim()
+                    if (!cleanHandle.contains(" ")) {
+                        try {
+                            val userIntent = Intent(Intent.ACTION_VIEW, Uri.parse("instagram://user?username=${Uri.encode(cleanHandle)}")).apply {
+                                setPackage("com.instagram.android")
+                            }
+                            startActivity(userIntent)
+                            return
+                        } catch (e: Exception) {}
+                    }
+                    try {
+                        val exploreIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/explore/search/keyword/?q=${Uri.encode(q)}")).apply {
+                            setPackage("com.instagram.android")
+                        }
+                        startActivity(exploreIntent)
+                        return
+                    } catch (e: Exception) {}
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/explore/search/keyword/?q=${Uri.encode(q)}")))
+                    return
+                }
+                "spotify" in key -> {
+                    try {
+                        val spIntent = Intent(Intent.ACTION_VIEW, Uri.parse("spotify:search:${Uri.encode(q)}")).apply {
+                            setPackage("com.spotify.music")
+                        }
+                        startActivity(spIntent)
+                        return
+                    } catch (e: Exception) {}
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com/search/${Uri.encode(q)}")))
+                    return
+                }
+                "amazon" in key || "అమెజాన్" in key -> {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.amazon.in/s?k=${Uri.encode(q)}")))
+                    return
+                }
+                "flipkart" in key || "ఫ్లిప్‌కార్ట్" in key -> {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.flipkart.com/search?q=${Uri.encode(q)}")))
+                    return
+                }
+                "swiggy" in key || "స్విగ్గీ" in key -> {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.swiggy.com/search?query=${Uri.encode(q)}")))
+                    return
+                }
+                "zomato" in key || "జొమాటో" in key -> {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.zomato.com/search?q=${Uri.encode(q)}")))
+                    return
+                }
+                "chrome" in key || "google" in key || "browser" in key -> {
+                    val searchUrl = if (q.startsWith("http://") || q.startsWith("https://")) q else "https://www.google.com/search?q=${Uri.encode(q)}"
+                    try {
+                        val chIntent = Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl)).apply {
+                            setPackage("com.android.chrome")
+                        }
+                        startActivity(chIntent)
+                        return
+                    } catch (e: Exception) {}
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl)))
+                    return
+                }
+                "play store" in key || "playstore" in key -> {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=${Uri.encode(q)}")))
+                    return
+                }
+                else -> {
+                    openApp(appName)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun openApp(appName: String) {
+            val key = appName.trim().lowercase()
+
+            // Always open REAL Instagram Reels or YouTube Shorts (never a mock modal!)
+            if ("reel" in key || "రీల్" in key || "रील" in key) {
+                openExternalReels()
+                return
+            }
+            if ("short" in key || "షార్ట్" in key) {
+                try {
+                    val shortsIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/shorts")).apply {
+                        setPackage("com.google.android.youtube")
+                    }
+                    startActivity(shortsIntent)
+                    return
+                } catch (e: Exception) {}
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/shorts")))
+                return
+            }
+
+            if (key == "settings" || key == "setting" || "సెట్టింగ్" in key || "सेटिंग" in key || "wifi" in key || "bluetooth" in key) {
+                openSystemSettings(key)
+                return
+            }
+
+            if (key == "clock" || key == "alarm" || key == "timer" || "అలారం" in key || "క్లాక్" in key) {
+                try {
+                    startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))
+                    return
+                } catch (e: Exception) {}
+            }
+
+            val pkgCandidates = when {
+                "whatsapp" in key || "vaatsap" in key || "వాట్సప్" in key || "వాట్సాప్" in key || "व्हाट्सएप" in key -> listOf("com.whatsapp", "com.whatsapp.w4b")
+                "insta" in key || "ఇన్‌స్టా" in key || "ఇన్స్టా" in key || "इंस्टा" in key -> listOf("com.instagram.android", "com.instagram.lite")
+                "youtube music" in key || "yt music" in key -> listOf("com.google.android.apps.youtube.music")
+                "youtube" in key || "యుట్యూబ్" in key || "యూట్యూబ్" in key || "यूट्यूब" in key -> listOf("com.google.android.youtube")
+                "map" in key || "మ్యాప్" in key || "मैप" in key -> listOf("com.google.android.apps.maps")
+                "spotify" in key || "స్పాటిఫై" in key -> listOf("com.spotify.music")
+                "jiosaavn" in key || "saavn" in key -> listOf("com.jio.media.jiobeats")
+                "gaana" in key -> listOf("com.gaana")
+                "wynk" in key -> listOf("com.bsbportal.music")
+                "snapchat" in key || "స్నాప్‌చాట్" in key -> listOf("com.snapchat.android")
+                "telegram" in key || "టెలిగ్రామ్" in key -> listOf("org.telegram.messenger", "org.thunderdog.challegram")
+                "facebook" in key || "fb" == key || "ఫేస్‌బుక్" in key -> listOf("com.facebook.katana", "com.facebook.lite")
+                "twitter" in key || "x app" in key -> listOf("com.twitter.android")
+                "linkedin" in key -> listOf("com.linkedin.android")
+                "amazon" in key || "అమెజాన్" in key -> listOf("in.amazon.mShop.android.shopping", "com.amazon.mShop.android.shopping")
+                "flipkart" in key || "ఫ్లిప్‌కార్ట్" in key -> listOf("com.flipkart.android")
+                "meesho" in key || "మీషో" in key -> listOf("com.meesho.supply")
+                "myntra" in key -> listOf("com.myntra.android")
+                "swiggy" in key || "స్విగ్గీ" in key -> listOf("in.swiggy.android")
+                "zomato" in key || "జొమాటో" in key -> listOf("com.application.zomato")
+                "blinkit" in key -> listOf("com.grofers.customerapp")
+                "zepto" in key -> listOf("com.zeptoconsumerapp")
+                "uber" in key -> listOf("com.ubercab")
+                "ola" in key -> listOf("com.olacabs.customer")
+                "rapido" in key -> listOf("com.rapido.passenger")
+                "netflix" in key -> listOf("com.netflix.mediaclient")
+                "hotstar" in key || "jiohotstar" in key -> listOf("in.startv.hotstar")
+                "prime video" in key -> listOf("com.amazon.avod.thirdpartyclient")
+                "chrome" in key || "browser" in key || "క్రోమ్" in key -> listOf("com.android.chrome")
+                "gmail" in key || "mail" in key || "మెయిల్" in key -> listOf("com.google.android.gm")
+                "calculator" in key || "calc" in key || "కాలిక్యులేటర్" in key -> listOf("com.google.android.calculator", "com.sec.android.app.popupcalculator", "com.miui.calculator", "com.coloros.calculator", "com.android.calculator2")
+                "calendar" in key || "క్యాలెండర్" in key -> listOf("com.google.android.calendar", "com.samsung.android.calendar", "com.android.calendar")
+                "message" in key || "sms" in key -> listOf("com.google.android.apps.messaging", "com.samsung.android.messaging", "com.android.mms")
+                "contact" in key || "phonebook" in key -> listOf("com.google.android.contacts", "com.samsung.android.app.contacts", "com.android.contacts")
+                "play store" in key || "playstore" in key -> listOf("com.android.vending")
+                else -> emptyList()
+            }
+
+            for (pkg in pkgCandidates) {
+                try {
+                    val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                    if (launchIntent != null) {
+                        startActivity(launchIntent)
+                        return
+                    }
+                } catch (e: Exception) {}
             }
 
             // Dynamic lookup across all installed launchable apps on the user's phone
@@ -530,7 +778,7 @@ class MainActivity : AppCompatActivity() {
                 for (info in resolvedList) {
                     val label = info.loadLabel(packageManager).toString().lowercase()
                     val pkgName = info.activityInfo?.packageName?.lowercase() ?: ""
-                    if (label == key || label.contains(key) || pkgName.contains(key)) {
+                    if (label == key || label.contains(key) || key.contains(label) && label.length >= 3 || pkgName.contains(key)) {
                         val launch = packageManager.getLaunchIntentForPackage(info.activityInfo.packageName)
                         if (launch != null) {
                             startActivity(launch)
@@ -542,9 +790,17 @@ class MainActivity : AppCompatActivity() {
 
             val fallbackUrl = when {
                 "whatsapp" in key || "vaatsap" in key || "వాట్సప్" in key -> "https://wa.me/"
+                "insta" in key || "ఇన్‌స్టా" in key || "ఇన్స్టా" in key -> "https://www.instagram.com/"
                 "youtube" in key || "యూట్యూబ్" in key -> "https://m.youtube.com"
                 "map" in key || "మ్యాప్" in key -> "https://maps.google.com"
-                "insta" in key -> "https://www.instagram.com"
+                "spotify" in key -> "https://open.spotify.com"
+                "amazon" in key -> "https://www.amazon.in"
+                "flipkart" in key -> "https://www.flipkart.com"
+                "swiggy" in key -> "https://www.swiggy.com"
+                "zomato" in key -> "https://www.zomato.com"
+                "snapchat" in key -> "https://www.snapchat.com"
+                "telegram" in key -> "https://web.telegram.org"
+                "facebook" in key -> "https://m.facebook.com"
                 else -> "https://www.google.com/search?q=" + Uri.encode(appName)
             }
             try {

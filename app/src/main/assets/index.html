@@ -356,19 +356,19 @@
 
     <div class="chips">
       <button class="chip" onclick="syncRealPhoneContacts()">🛡️ Grant Permissions & Sync Phone Contacts</button>
-      <button class="chip" onclick="window.openReelsPlayer(true)" style="border-color:#ff007f;color:#ff85c1">🎬 Open Reels & Voice Scroll</button>
+      <button class="chip" onclick="sendQuick('Open Instagram')" style="border-color:#ff007f;color:#ff85c1">📸 Open Instagram</button>
+      <button class="chip" onclick="sendQuick('Open Instagram and open Reels')" style="border-color:#ff007f;color:#ff85c1">🎬 Open Instagram Reels</button>
+      <button class="chip" onclick="sendQuick('Open WhatsApp and send hii to Babbi')">💬 Open WhatsApp & Message Babbi</button>
+      <button class="chip" onclick="sendQuick('Open YouTube and play Telugu songs')">🎵 Open YouTube & Play Songs</button>
+      <button class="chip" onclick="sendQuick('Turn on flashlight and check battery')">⚡ Flashlight + Battery (2-Step)</button>
       <button class="chip" onclick="setAsDefaultAssistant()">🤖 Set Aura as Default AI Assistant</button>
       <button class="chip" onclick="sendQuick('ఏ గురించి ఎక్స్ప్లెయిన్ చెయ్')">🤖 ఏ గురించి ఎక్స్ప్లెయిన్ చెయ్ (Explain AI)</button>
-      <button class="chip" onclick="sendQuick('నువ్వు ఎవరు? ఏం చేయగలవు?')">👋 నువ్వు ఎవరు? (Who are you?)</button>
       <button class="chip" onclick="sendQuick('Amma ki call chey')">🇮🇳 అమ్మ కి కాల్ చేయి</button>
-      <button class="chip" onclick="sendQuick('Amma ko call karo')">🇮🇳 अम्मा को कॉल करो</button>
       <button class="chip" onclick="sendQuick('వాట్సప్ లో మెసేజ్ పంపు')">💬 వాట్సప్ లో మెసేజ్ పంపు (WhatsApp)</button>
-      <button class="chip" onclick="sendQuick('YouTube lo Telugu songs play chey')">🎵 YouTube Telugu Songs</button>
       <button class="chip" onclick="sendQuick('Navigate to Charminar')">🗺️ Navigate to Charminar</button>
-      <button class="chip" onclick="sendQuick('Battery entha undi')">🔋 Battery Check (Telugu)</button>
+      <button class="chip" onclick="sendQuick('Battery entha undi')">🔋 Real Battery Check</button>
       <button class="chip" onclick="sendQuick('250 plus 475 entha')">🧮 250 + 475 (Telugu Calc)</button>
       <button class="chip" onclick="sendQuick('Kinda ki scroll chey')">👇 Scroll Down (Telugu)</button>
-      <button class="chip" onclick="sendQuick('Torch on chey')">🔦 Torch On (Telugu)</button>
       <button class="chip" onclick="sendQuick('Manchi maata cheppu')">🌸 Moral Value (మంచి మాట)</button>
     </div>
 
@@ -1345,10 +1345,14 @@
         }
       }
 
-      // 2. Check if selecting/opening a built-in panel or Reels
+      // 2. Check if selecting/opening a built-in panel or real Instagram Reels
       if (q.includes('reel') || q.includes('రీల్')) {
-        window.openReelsPlayer(q.includes('scroll') || q.includes('auto'));
-        return { matched: true, label: 'Aura Reels & Shorts Player' };
+        if (window.AndroidNative && window.AndroidNative.openExternalReels) {
+          window.AndroidNative.openExternalReels();
+        } else {
+          window.open('https://www.instagram.com/reels/', '_blank');
+        }
+        return { matched: true, label: 'Instagram Reels' };
       }
       if (q.includes('permission') || q.includes('contact') || q.includes('కాంటాక్ట్') || q.includes('అనుమతి')) {
         togglePanel('permPanel');
@@ -1465,11 +1469,9 @@
       try {
         if (toolName === 'scroll_screen') {
           const dir = args?.direction || result?.direction || 'down';
-          if (args?.reels) {
-            window.openReelsPlayer(Boolean(args?.auto_scroll));
-            window.scrollReels(dir);
-          } else {
-            window.performSmartScroll(dir);
+          window.performSmartScroll(dir);
+          if (window.AndroidNative && window.AndroidNative.scrollScreen) {
+            window.AndroidNative.scrollScreen(dir);
           }
           return;
         }
@@ -1477,13 +1479,6 @@
           const target = args?.target_text || result?.target_text || '';
           window.performSmartSelect(target);
           return;
-        }
-        if (toolName === 'open_android_app') {
-          const appName = String(args?.app_name || result?.app_name || '').toLowerCase();
-          if (appName.includes('reel') || appName.includes('రీల్') || appName.includes('short')) {
-            window.openReelsPlayer(appName.includes('scroll'));
-            return;
-          }
         }
         if (toolName === 'send_whatsapp_message') {
           const target = args?.recipient_name_or_number || args?.contact_name_or_number || result?.recipient || result?.contact_name || '';
@@ -1504,16 +1499,31 @@
         if (toolName === 'make_phone_call' && (args?.contact_name_or_number || result?.contact_name || result?.phone_number)) {
           const queryTarget = args?.contact_name_or_number || result?.contact_name || result?.phone_number;
           window.AndroidNative.callContact(queryTarget);
-        } else if (toolName === 'control_device_setting' && args?.setting === 'flashlight') {
-          window.AndroidNative.setTorch(args?.action !== 'off');
-        } else if (toolName === 'set_alarm_or_timer' && args?.mode === 'alarm') {
-          window.AndroidNative.setAlarm(args?.hour || 7, args?.minute || 0, args?.label || 'Aura Alarm');
+        } else if (toolName === 'control_device_setting') {
+          const setting = String(args?.setting || '').toLowerCase();
+          if (setting === 'flashlight' && window.AndroidNative.setTorch) {
+            window.AndroidNative.setTorch(args?.action !== 'off');
+          } else if ((setting === 'volume_up' || setting === 'volume_down' || setting === 'mute') && window.AndroidNative.adjustVolume) {
+            window.AndroidNative.adjustVolume(setting);
+          } else if ((setting === 'wifi' || setting === 'bluetooth') && window.AndroidNative.openSystemSettings) {
+            window.AndroidNative.openSystemSettings(setting);
+          }
+        } else if (toolName === 'set_alarm_or_timer') {
+          if (args?.mode === 'timer' && window.AndroidNative.setTimer) {
+            window.AndroidNative.setTimer(args?.duration_seconds || 60, args?.label || 'Aura Timer');
+          } else if (window.AndroidNative.setAlarm) {
+            window.AndroidNative.setAlarm(args?.hour || 7, args?.minute || 0, args?.label || 'Aura Alarm');
+          }
+        } else if (toolName === 'send_sms_message' && window.AndroidNative.sendSms) {
+          window.AndroidNative.sendSms(args?.contact_name_or_number || '', args?.message || '');
         } else if (toolName === 'take_screenshot' && window.AndroidNative.captureScreenshot) {
           window.AndroidNative.captureScreenshot();
         } else if (toolName === 'play_youtube_media' && args?.query && window.AndroidNative.openYouTube) {
           window.AndroidNative.openYouTube(args.query);
         } else if (toolName === 'navigate_to_location' && args?.destination && window.AndroidNative.navigateMaps) {
           window.AndroidNative.navigateMaps(args.destination);
+        } else if (toolName === 'open_app_with_query' && window.AndroidNative.openAppWithQuery) {
+          window.AndroidNative.openAppWithQuery(args?.app_name || '', args?.query || '');
         } else if (toolName === 'open_android_app' && window.AndroidNative.openApp) {
           window.AndroidNative.openApp(args?.app_name || (result && result.app_name) || '');
         }
@@ -1612,9 +1622,7 @@
             setTimeout(() => {
               try {
                 const lblLow = String(act.label || '').toLowerCase();
-                if (lblLow.includes('reel') || lblLow.includes('రీల్')) {
-                  window.openReelsPlayer(lblLow.includes('scroll'));
-                } else if (window.AndroidNative && window.AndroidNative.openApp && lblLow.includes('open') && !act.url.includes('api.whatsapp.com')) {
+                if (window.AndroidNative && window.AndroidNative.openApp && lblLow.startsWith('open ') && !act.url.includes('api.whatsapp.com')) {
                   window.AndroidNative.openApp(act.label.replace(/^open\s+/i, ''));
                 } else {
                   window.location.href = act.url;
@@ -1634,17 +1642,64 @@
     let pendingWhatsAppStep = null; // 'ask_who' | 'ask_msg' | null
     let pendingWhatsAppTarget = '';
 
+    function splitMultiInputCommands(rawText) {
+      const clean = String(rawText || '').replace(/\s*\.\.\.\s*/g, ' ').trim();
+      const parts = clean.split(/\s+(?:and\s+then|then|after\s+that|also|and|mariyu|tarvata|aur|phir|మరియు|తర్వాత|और|फिर)\s+/i);
+      if (parts.length <= 1) return [clean];
+
+      const actionStartRe = /^(?:open|launch|start|call|phone|dial|send|whatsapp|message|msg|sms|play|search|find|show|watch|navigate|go\s+to|directions\s+to|turn\s+on|turn\s+off|switch\s+on|switch\s+off|enable|disable|set|check|scroll|swipe|select|click|tap|volume|mute|unmute|what\s+is|who\s+is|tell\s+me|calculate|battery|time|date|torch|flashlight|hii|hi|hello)\b/i;
+      const indicActionRe = /(?:కాల్|ఫోన్|వాట్సప్|మెసేజ్|ఓపెన్|తెరువు|ప్లే|స్క్రోల్|సెలెక్ట్|బ్యాటరీ|టార్చ్|టైమ్|कॉल|व्हाट्सएप|खोलो|चलाओ|बैटरी|टॉर्च|\b(?:chey|cheyi|karo|pampu|bhejo|kholo|teruvu|entha|batao)\b)/i;
+      const inAppTaskRe = /^(?:send|message|msg|text|say|play|search|find|show|watch|open\s+reels|reels|navigate|directions\s+to|go\s+to|order|buy|hii|hi|hello)\b/i;
+      const openAppOnlyRe = /^(?:open|launch|start)\s+([a-zA-Z0-9\s\u0C00-\u0C7F\u0900-\u097F]+)$/i;
+
+      const merged = [];
+      let i = 0;
+      while (i < parts.length) {
+        const curr = parts[i].trim();
+        if (i + 1 < parts.length) {
+          const nxt = parts[i + 1].trim();
+          // Keep "open <app>" + "<in-app action>" together as a compound App+Task command
+          if (openAppOnlyRe.test(curr) && inAppTaskRe.test(nxt)) {
+            merged.push(`${curr} and ${nxt}`);
+            i += 2;
+            continue;
+          }
+          if (!(actionStartRe.test(nxt) || indicActionRe.test(nxt))) {
+            parts[i + 1] = `${curr} and ${nxt}`;
+            i += 1;
+            continue;
+          }
+        }
+        merged.push(curr);
+        i += 1;
+      }
+      return merged.filter(Boolean);
+    }
+
     async function sendCommand(text) {
       if (!text.trim()) return;
       appendMessage('user', text);
       document.getElementById('orbStatus').innerText = 'Thinking & Executing...';
 
+      const subCommands = (pendingWhatsAppStep === null) ? splitMultiInputCommands(text) : [text];
+      if (subCommands.length > 1) {
+        for (const subCmd of subCommands) {
+          await runStandaloneApkBrain(subCmd);
+          await new Promise(r => setTimeout(r, 350));
+        }
+        document.getElementById('orbStatus').innerText = handsFreeMode
+          ? 'Hands-Free Listening... Speak anytime!'
+          : 'Tap the Orb & speak at your own pace';
+        return;
+      }
+
       const reelsOpen = document.getElementById('reelsModal') && document.getElementById('reelsModal').style.display === 'flex';
       const isCallIntent = /\b(call|phone|dial)\b/i.test(text) || /కాల్|ఫోన్|कॉल|கால்/.test(text);
       const isWaIntent = pendingWhatsAppStep !== null || /\b(whatsapp|vaatsap|whatsap)\b/i.test(text) || /వాట్సప్|వాట్సాప్|व्हाट्सएप|வாட்ஸ்அப்/.test(text);
-      const isReelsOrScrollOrSelect = reelsOpen || /\b(instagram|insta|reel|reels|shorts|scroll|swipe|next\s+reel|previous\s+reel|select|click|tap|choose)\b/i.test(text) || /ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|चुनो|क्लिक/.test(text);
+      const isCompoundAppAction = /^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:open|launch|start)\s+.+?\s+(?:and|then|mariyu|aur|మరియు|और)\s+/i.test(text);
+      const isScrollOrSelectOrOpenApp = reelsOpen || isCompoundAppAction || /\b(open|launch|start|instagram|insta|reel|reels|shorts|scroll|swipe|select|click|tap|choose|battery|volume|mute|timer|alarm)\b/i.test(text) || /ఓపెన్|తెరువు|ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|బ్యాటరీ|चुनो|क्लिक/.test(text);
 
-      if ((isCallIntent || isWaIntent || isReelsOrScrollOrSelect) && (window.AndroidNative || isReelsOrScrollOrSelect || isWaIntent || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
+      if ((isCallIntent || isWaIntent || isScrollOrSelectOrOpenApp) && (window.AndroidNative || isScrollOrSelectOrOpenApp || isWaIntent || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
         await runStandaloneApkBrain(text);
         document.getElementById('orbStatus').innerText = handsFreeMode
           ? 'Hands-Free Listening... Speak anytime!'
@@ -1786,51 +1841,136 @@
         return;
       }
 
-      // Reels & Shorts Opening / Voice Scrolling / Auto-Scrolling Handler
+      // Compound App + Action Handler ("open <app> and <do something>")
+      const compoundMatch = text.match(/^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:open|launch|start)\s+([a-zA-Z0-9\s\u0C00-\u0C7F\u0900-\u097F]+?)\s+(?:and|then|mariyu|aur|మరియు|और)\s+(.+)$/i);
+      if (compoundMatch && !/\b(whatsapp|vaatsap|whatsap|వాట్సప్|వాట్సాప్|व्हाट्सएप)\b/i.test(compoundMatch[1])) {
+        const cApp = compoundMatch[1].trim().toLowerCase();
+        const cTask = compoundMatch[2].trim();
+        const cleanQuery = cTask.replace(/^(?:search\s+for|search|play|find|show|watch|open|order|buy|look\s+for|navigate\s+to|go\s+to|directions\s+to)\s+/i, '').trim() || cTask;
+
+        if (cApp.includes('insta') || /ఇన్‌స్టా|ఇన్స్టా|इंस्टा/.test(cApp)) {
+          if (/\b(reel|reels)\b/i.test(cTask) || /రీల్/.test(cTask)) {
+            if (window.AndroidNative && window.AndroidNative.openExternalReels) window.AndroidNative.openExternalReels();
+            const msg = isTe ? '📸 Instagram Reels యాప్ తెరుస్తున్నాను.' : '📸 Opening real Instagram Reels app.';
+            appendMessage('aura', msg, [{ label: 'Open Instagram Reels', url: 'https://www.instagram.com/reels/', auto_trigger: !window.AndroidNative }]);
+            speakReply(msg, lang, 'Opening Instagram Reels');
+            return;
+          }
+          if (window.AndroidNative && window.AndroidNative.openAppWithQuery) {
+            window.AndroidNative.openAppWithQuery('instagram', cleanQuery);
+          }
+          const instaUrl = cleanQuery.includes(' ')
+            ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cleanQuery)}`
+            : `https://www.instagram.com/${encodeURIComponent(cleanQuery.replace(/^@/, ''))}/`;
+          const msg = isTe ? `📸 Instagram తెరిచి "${cleanQuery}" వెతుకుతున్నాను.` : `📸 Opening Instagram and searching for "${cleanQuery}".`;
+          appendMessage('aura', msg, [{ label: `Instagram: ${cleanQuery}`, url: instaUrl, auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, `Opening Instagram for ${cleanQuery}`);
+          return;
+        }
+
+        if (cApp.includes('youtube') || cApp.includes('yt') || /యూట్యూబ్|యుట్యూబ్|यूट्यूब/.test(cApp)) {
+          if (window.AndroidNative && window.AndroidNative.openYouTube) window.AndroidNative.openYouTube(cleanQuery);
+          const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanQuery)}`;
+          const msg = isTe ? `🎵 YouTube తెరిచి "${cleanQuery}" ప్లే చేస్తున్నాను.` : `🎵 Opening YouTube and playing "${cleanQuery}".`;
+          appendMessage('aura', msg, [{ label: `YouTube: ${cleanQuery}`, url: ytUrl, auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, `Playing ${cleanQuery} on YouTube`);
+          return;
+        }
+
+        if (cApp.includes('map') || /మ్యాప్|मैप/.test(cApp)) {
+          if (window.AndroidNative && window.AndroidNative.navigateMaps) window.AndroidNative.navigateMaps(cleanQuery);
+          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanQuery)}`;
+          const msg = isTe ? `🗺️ Google Maps లో "${cleanQuery}" కి నావిగేట్ చేస్తున్నాను.` : `🗺️ Opening Google Maps and navigating to "${cleanQuery}".`;
+          appendMessage('aura', msg, [{ label: `Maps: ${cleanQuery}`, url: mapUrl, auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, `Navigating to ${cleanQuery}`);
+          return;
+        }
+
+        if (/\b(amazon|flipkart|swiggy|zomato|spotify|chrome|google|browser|play\s*store)\b/i.test(cApp)) {
+          if (window.AndroidNative && window.AndroidNative.openAppWithQuery) {
+            window.AndroidNative.openAppWithQuery(cApp, cleanQuery);
+          }
+          const urlMap = {
+            amazon: `https://www.amazon.in/s?k=${encodeURIComponent(cleanQuery)}`,
+            flipkart: `https://www.flipkart.com/search?q=${encodeURIComponent(cleanQuery)}`,
+            swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(cleanQuery)}`,
+            zomato: `https://www.zomato.com/search?q=${encodeURIComponent(cleanQuery)}`,
+            spotify: `https://open.spotify.com/search/${encodeURIComponent(cleanQuery)}`,
+          };
+          let targetUrl = `https://www.google.com/search?q=${encodeURIComponent(cApp + ' ' + cleanQuery)}`;
+          for (const [k, u] of Object.entries(urlMap)) {
+            if (cApp.includes(k)) { targetUrl = u; break; }
+          }
+          const appTitle = cApp.charAt(0).toUpperCase() + cApp.slice(1);
+          const msg = isTe
+            ? `🚀 ${appTitle} తెరిచి "${cleanQuery}" వెతుకుతున్నాను.`
+            : `🚀 Opening ${appTitle} and searching for "${cleanQuery}".`;
+          appendMessage('aura', msg, [{ label: `${appTitle}: ${cleanQuery}`, url: targetUrl, auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, `Opening ${appTitle} for ${cleanQuery}`);
+          return;
+        }
+      }
+
+      // Real Instagram & Instagram Reels & YouTube Shorts Handler (Always opens the REAL native app!)
       const reelsModalOpen = document.getElementById('reelsModal') && document.getElementById('reelsModal').style.display === 'flex';
-      if (
-        /\b(instagram|insta|reel|reels|shorts|next\s+reel|previous\s+reel|prev\s+reel)\b/.test(lower) ||
-        /ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|रील/.test(text) ||
-        (reelsModalOpen && (/\b(next|previous|prev|like)\b/.test(lower) || /తర్వాత|ముందు|లైక్/.test(text)))
-      ) {
-        if (reelsModalOpen && (/\b(like)\b/.test(lower) || /లైక్/.test(text))) {
+      if (reelsModalOpen && (/\b(next|previous|prev|like)\b/.test(lower) || /తర్వాత|ముందు|లైక్/.test(text))) {
+        if (/\b(like)\b/.test(lower) || /లైక్/.test(text)) {
           window.likeCurrentReel();
           const msg = isTe ? `❤️ రీల్ #${currentReelIndex + 1} లైక్ చేశాను!` : `❤️ Liked Reel #${currentReelIndex + 1}!`;
           appendMessage('aura', msg);
           speakReply(msg, lang, `Liked Reel ${currentReelIndex + 1}`);
           return;
         }
-
-        const wantsAuto = /\b(auto|and\s+scroll|keep\s+scrolling|continuous)\b/.test(lower) || /ఆటో/.test(text);
-        const wantsScroll = wantsAuto || /\b(scroll|swipe|next|previous|prev|up|down|kinda|paiki)\b/.test(lower) || /స్క్రోల్|తర్వాత|ముందు|కింద|పైకి/.test(text);
         const dir = (/\b(up|paiki|prev|previous|back)\b/.test(lower) || /పైకి|ముందు/.test(text)) ? 'up' : 'down';
-
-        if (!reelsModalOpen) {
-          window.openReelsPlayer(wantsAuto);
-          if (wantsScroll && !wantsAuto) {
-            setTimeout(() => { window.scrollReels(dir); }, 600);
-          }
-          const msg = wantsScroll
-            ? (isTe
-              ? '🎬 రీల్స్ ఓపెన్ చేసి స్క్రోల్ చేస్తున్నాను! "Scroll down", "Next reel", లేదా "Scroll up" అని చెప్పండి.'
-              : '🎬 Opened Reels and scrolling hands-free! Say "Scroll down", "Next reel", or "Scroll up" anytime.')
-            : (isTe
-              ? '🎬 రీల్స్ ఓపెన్ చేశాను! స్క్రోల్ చేయడానికి "Scroll down" లేదా "Next reel" అని చెప్పండి.'
-              : '🎬 Opened Reels! Say "Scroll down", "Next reel", or "Auto scroll" to scroll hands-free.');
-          appendMessage('aura', msg);
-          speakReply(msg, lang, 'Opened Reels and scrolling');
-          return;
-        }
-
-        if (wantsAuto) {
-          window.toggleReelsAutoScroll(true);
-        }
         const newIdx = window.scrollReels(dir);
-        const msg = isTe
-          ? `🎬 రీల్ #${newIdx} కి స్క్రోల్ చేశాను.`
-          : `🎬 Scrolled to Reel #${newIdx}.`;
+        const msg = isTe ? `🎬 రీల్ #${newIdx} కి స్క్రోల్ చేశాను.` : `🎬 Scrolled to Reel #${newIdx}.`;
         appendMessage('aura', msg);
         speakReply(msg, lang, `Scrolled to Reel ${newIdx}`);
+        return;
+      }
+
+      if (/\b(instagram|insta|reel|reels)\b/.test(lower) || /ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|रील|इंस्टा/.test(text)) {
+        const wantsReels = /\b(reel|reels)\b/.test(lower) || /రీల్|రీల్స్|रील/.test(text);
+        const searchMatch = text.match(/(?:search\s+for|search|find|show|profile)\s+([a-zA-Z0-9_.\s]+)$/i);
+        if (searchMatch && !wantsReels) {
+          const q = searchMatch[1].trim();
+          if (window.AndroidNative && window.AndroidNative.openAppWithQuery) {
+            window.AndroidNative.openAppWithQuery('instagram', q);
+          }
+          const instaUrl = q.includes(' ')
+            ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(q)}`
+            : `https://www.instagram.com/${encodeURIComponent(q.replace(/^@/, ''))}/`;
+          const msg = isTe ? `📸 Instagram లో "${q}" తెరుస్తున్నాను.` : `📸 Opening "${q}" on Instagram.`;
+          appendMessage('aura', msg, [{ label: `Instagram: ${q}`, url: instaUrl, auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, `Opening ${q} on Instagram`);
+          return;
+        }
+        if (wantsReels) {
+          if (window.AndroidNative && window.AndroidNative.openExternalReels) {
+            window.AndroidNative.openExternalReels();
+          }
+          const msg = isTe ? '📸 Instagram Reels యాప్ తెరుస్తున్నాను.' : (isHi ? '📸 इंस्टाग्राम रील्स ऐप खोल रही हूँ।' : '📸 Opening Instagram Reels app.');
+          appendMessage('aura', msg, [{ label: 'Open Instagram Reels', url: 'https://www.instagram.com/reels/', auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, 'Opening Instagram Reels');
+          return;
+        } else {
+          if (window.AndroidNative && window.AndroidNative.openApp) {
+            window.AndroidNative.openApp('instagram');
+          }
+          const msg = isTe ? '📸 Instagram యాప్ తెరుస్తున్నాను.' : (isHi ? '📸 इंस्टाग्राम ऐप खोल रही हूँ।' : '📸 Opening Instagram app.');
+          appendMessage('aura', msg, [{ label: 'Open Instagram', url: 'https://www.instagram.com/', auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, 'Opening Instagram');
+          return;
+        }
+      }
+
+      if (/\b(shorts|youtube\s+shorts)\b/.test(lower) || /షార్ట్స్/.test(text)) {
+        if (window.AndroidNative && window.AndroidNative.openApp) {
+          window.AndroidNative.openApp('youtube shorts');
+        }
+        const msg = isTe ? '🎬 YouTube Shorts తెరుస్తున్నాను.' : '🎬 Opening YouTube Shorts.';
+        appendMessage('aura', msg, [{ label: 'Open YouTube Shorts', url: 'https://www.youtube.com/shorts', auto_trigger: !window.AndroidNative }]);
+        speakReply(msg, lang, 'Opening YouTube Shorts');
         return;
       }
 
@@ -1854,6 +1994,7 @@
 
         const patSaying = text.match(/(?:to|ki|ko)\s+([a-zA-Z\u0C00-\u0C7F\u0900-\u097F0-9_]+?)\s+(?:in\s+whatsapp\s+|on\s+whatsapp\s+)?(?:saying|that|as|ani)\s+(.+)$/i);
         const patInWaSaying = text.match(/(?:send|whatsapp|message|msg).*?(?:to)\s+([a-zA-Z\u0C00-\u0C7F\u0900-\u097F0-9_]+?)\s+(?:in|on)\s+(?:whatsapp|vaatsap|వాట్సప్|వాట్సాప్)\s+(.+)$/i);
+        const patSendMsgTo = text.match(/(?:send|message|msg)\s+(.+?)\s+to\s+([a-zA-Z\u0C00-\u0C7F\u0900-\u097F0-9_]+?)(?:\s+in\s+whatsapp|\s+on\s+whatsapp)?$/i);
         const patTe = text.match(/^([a-zA-Z\u0C00-\u0C7F0-9_]+?)\s+(?:ki|కి|కు)\s+(?:whatsapp\s+lo|వాట్సప్\s*లో|వాట్సాప్\s*లో)\s+(.+?)\s+(?:ani\s+|అని\s+)?(?:message|msg|మెసేజ్|పంపు|పెట్టు)/i);
         const patDirect = text.match(/^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:whatsapp|వాట్సప్|వాట్సాప్)\s+([a-zA-Z\u0C00-\u0C7F0-9_]+?)\s+(.+)$/i);
 
@@ -1863,6 +2004,9 @@
         } else if (patInWaSaying) {
           targetName = patInWaSaying[1].trim();
           msgBody = patInWaSaying[2].trim();
+        } else if (patSendMsgTo && !/^(message|msg|a\s+message)$/i.test(patSendMsgTo[1].trim())) {
+          msgBody = patSendMsgTo[1].trim();
+          targetName = patSendMsgTo[2].trim();
         } else if (patTe) {
           targetName = patTe[1].trim();
           msgBody = patTe[2].trim();
@@ -1933,7 +2077,7 @@
           ? matchedCallContact.name
           : text
               .replace(/^(?:hey\s+aura|aura|please|can\s+you)\s+/i, '')
-              .replace(/\b(?:call|phone|dial|to|ko|ki|ku|karo|chey|cheyi|cheyandi|pannu|laga|lagao)\b/gi, ' ')
+              .replace(/\b(?:open|and|call|phone|dial|to|ko|ki|ku|karo|chey|cheyi|cheyandi|pannu|laga|lagao)\b/gi, ' ')
               .replace(/కి|కు|కాల్|ఫోన్|చేయి|చేయ్|చేయండి|को|कॉल|फोन|करो|लगाओ|கு|கால்|பண்ணு/g, ' ')
               .replace(/\s+/g, ' ')
               .trim();
@@ -2001,20 +2145,12 @@
         return;
       }
 
-      // Scroll Screen & Reels handler (Up, Down, Left, Right)
+      // Scroll Screen handler (Up, Down, Left, Right)
       if (/\b(scroll|swipe)\b/.test(lower) || /స్క్రోల్/.test(text)) {
         let dir = 'down';
         if (lower.includes('up') || lower.includes('paiki') || lower.includes('top') || /పైకి/.test(text)) dir = 'up';
         else if (lower.includes('left') || /ఎడమ/.test(text)) dir = 'left';
         else if (lower.includes('right') || /కుడి/.test(text)) dir = 'right';
-
-        if (/\b(auto|keep)\b/.test(lower) || /ఆటో/.test(text)) {
-          window.openReelsPlayer(true);
-          const msg = isTe ? '🎬 రీల్స్ ఆటో-స్క్రోల్ ఆన్ చేశాను!' : '🎬 Started Reels auto-scrolling!';
-          appendMessage('aura', msg);
-          speakReply(msg, lang, 'Started Reels auto scrolling');
-          return;
-        }
 
         window.performSmartScroll(dir);
         if (window.AndroidNative && window.AndroidNative.scrollScreen) {
@@ -2025,7 +2161,7 @@
           ? (isTe ? `🎬 రీల్ #${currentReelIndex + 1} కి స్క్రోల్ చేశాను.` : `🎬 Scrolled to Reel #${currentReelIndex + 1}.`)
           : (isTe ? `👇 స్క్రీన్ ${dirTe} స్క్రోల్ చేశాను.` : `👇 Scrolled screen ${dir}.`);
         appendMessage('aura', msg);
-        speakReply(msg, lang, reelsModalOpen ? `Scrolled to Reel ${currentReelIndex + 1}` : `Scrolled screen ${dir}`);
+        speakReply(msg, lang, `Scrolled screen ${dir}`);
         return;
       }
 
@@ -2057,10 +2193,10 @@
 
       if (/\b(who are you|your name|what can you do|help)\b/.test(lower) || /నువ్వు ఎవరు|మీరు ఎవరు|ఏం చేయగలవు|तुम कौन हो|क्या कर सकते हो/.test(text)) {
         const msg = isTe
-          ? '🤖 నమస్కారం! నేను ఆరా (Aura v2.1) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp మెసేజ్‌లు పంపగలను, స్క్రీన్ స్క్రోల్/సెలెక్ట్ చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
+          ? '🤖 నమస్కారం! నేను ఆరా (Aura v2.2) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp మెసేజ్‌లు పంపగలను, ఏ యాప్‌నైనా (Instagram, YouTube, Maps, Spotify, Amazon, Flipkart) ఓపెన్ చేసి పని చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
           : (isHi
-            ? '🤖 नमस्ते! मैं ऑरा (Aura v2.1) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल और व्हाट्सऐप मैसेज कर सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
-            : '🤖 Hello! I am Aura v2.1, your multilingual Android AI Assistant. I can call and send WhatsApp messages to your real phone contacts, select buttons, scroll the screen, and answer any question in Telugu, Hindi, Tamil, and English!');
+            ? '🤖 नमस्ते! मैं ऑरा (Aura v2.2) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल और व्हाट्सऐप मैसेज कर सकती हूँ, कोई भी ऐप खोल सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
+            : '🤖 Hello! I am Aura v2.2, your multilingual Android AI Assistant. I can open any real app (Instagram, WhatsApp, YouTube, Maps, Spotify, Amazon, Flipkart), execute multi-step commands, call or message your real phone contacts, and answer any question!');
         appendMessage('aura', msg);
         speakReply(msg, lang);
         return;
@@ -2075,11 +2211,90 @@
         return;
       }
 
+      // Real Battery Status (reads real Android BatteryManager or Web Battery API, never hardcoded!)
       if (/\b(battery)\b/.test(lower) || /బ్యాటరీ|बैटरी/.test(text)) {
-        const msg = isTe ? '🔋 మీ ఫోన్ బ్యాటరీ ప్రస్తుతం 85% ఉంది.' : '🔋 Your phone battery is currently at 85%.';
+        let levelNum = null;
+        let isCharging = false;
+        if (window.AndroidNative && window.AndroidNative.getRealBatteryStatus) {
+          const rawBat = String(window.AndroidNative.getRealBatteryStatus() || '');
+          if (rawBat.includes('|')) {
+            const [lvlStr, chgStr] = rawBat.split('|');
+            const parsed = parseInt(lvlStr, 10);
+            if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+              levelNum = parsed;
+              isCharging = (chgStr === 'true');
+            }
+          }
+        }
+        if (levelNum === null && navigator.getBattery) {
+          try {
+            const bat = await navigator.getBattery();
+            if (bat && typeof bat.level === 'number') {
+              levelNum = Math.round(bat.level * 100);
+              isCharging = Boolean(bat.charging);
+            }
+          } catch (e) {}
+        }
+        const pctStr = levelNum !== null ? `${levelNum}%` : 'active';
+        const chargeNote = isCharging ? (isTe ? ' (ఛార్జింగ్ అవుతోంది ⚡)' : ' (Charging ⚡)') : '';
+        const msg = levelNum !== null
+          ? (isTe ? `🔋 మీ ఫోన్ బ్యాటరీ ప్రస్తుతం ${pctStr} ఉంది${chargeNote}.` : `🔋 Your phone battery is currently at ${pctStr}${chargeNote}.`)
+          : (isTe ? '🔋 బ్యాటరీ వివరాలు తనిఖీ చేస్తున్నాను.' : '🔋 Checking your phone battery status.');
         appendMessage('aura', msg);
-        speakReply(msg, lang, 'Your battery is at 85 percent');
+        speakReply(msg, lang, levelNum !== null ? `Your phone battery is at ${levelNum} percent` : 'Checking battery status');
         return;
+      }
+
+      // Volume Control (Up / Down / Mute / Unmute)
+      if (/\b(volume|louder|quieter|mute|unmute|silent)\b/.test(lower) || /వాల్యూమ్|సైలెంట్|మ్యూట్|आवाज|म्यूट/.test(text)) {
+        let vAct = 'up';
+        if (/\b(down|lower|quieter|decrease|tagginchu|kam)\b/.test(lower) || /తగ్గించు|कम/.test(text)) vAct = 'down';
+        else if (/\b(unmute)\b/.test(lower)) vAct = 'unmute';
+        else if (/\b(mute|silent)\b/.test(lower) || /సైలెంట్|మ్యూట్|म्यूट/.test(text)) vAct = 'mute';
+        let newVol = '';
+        if (window.AndroidNative && window.AndroidNative.adjustVolume) {
+          newVol = String(window.AndroidNative.adjustVolume(vAct) || '');
+        }
+        const msg = isTe
+          ? `🔊 వాల్యూమ్ ${vAct === 'up' ? 'పెంచాను' : (vAct === 'down' ? 'తగ్గించాను' : 'మ్యూట్ చేశాను')}${newVol ? ' (' + newVol + ')' : ''}.`
+          : `🔊 Adjusted volume (${vAct})${newVol ? ' to ' + newVol : ''}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang, `Volume adjusted ${vAct}`);
+        return;
+      }
+
+      // Alarm & Timer Handler
+      if (/\b(timer)\b/.test(lower) || /టైమర్|टाइमर/.test(text)) {
+        const tm = lower.match(/(\d+)\s*(second|seconds|sec|minute|minutes|min|hour|hours)/);
+        const amount = tm ? parseInt(tm[1], 10) : 1;
+        const unit = tm ? tm[2] : 'minute';
+        const secs = unit.startsWith('hour') ? amount * 3600 : (unit.startsWith('min') ? amount * 60 : amount);
+        if (window.AndroidNative && window.AndroidNative.setTimer) {
+          window.AndroidNative.setTimer(secs, 'Aura Timer');
+        }
+        const msg = isTe ? `⏲️ ${amount} ${unit} టైమర్ సెట్ చేశాను.` : `⏲️ Set a timer for ${amount} ${unit}.`;
+        appendMessage('aura', msg);
+        speakReply(msg, lang, `Set a timer for ${amount} ${unit}`);
+        return;
+      }
+
+      if (/\b(alarm)\b/.test(lower) || /అలారం|अलार्म/.test(text)) {
+        const am = lower.match(/(\d{1,2})(?:[:\s](\d{2}))?\s*(am|pm)?/);
+        if (am) {
+          let hr = parseInt(am[1], 10);
+          const mn = parseInt(am[2] || '0', 10);
+          const mer = am[3];
+          if (mer === 'pm' && hr < 12) hr += 12;
+          if (mer === 'am' && hr === 12) hr = 0;
+          if (window.AndroidNative && window.AndroidNative.setAlarm) {
+            window.AndroidNative.setAlarm(hr, mn, 'Aura Alarm');
+          }
+          const timeFmt = `${String(hr).padStart(2, '0')}:${String(mn).padStart(2, '0')}`;
+          const msg = isTe ? `⏰ ${timeFmt} కి అలారం సెట్ చేశాను.` : `⏰ Set an alarm for ${timeFmt}.`;
+          appendMessage('aura', msg);
+          speakReply(msg, lang, `Alarm set for ${timeFmt}`);
+          return;
+        }
       }
 
       if (/\b(torch|flashlight)\b/.test(lower) || /టార్చ్|ఫ్లాష్|टॉर्च/.test(text)) {
@@ -2092,22 +2307,77 @@
       }
 
       if (/\b(youtube|songs|paata)\b/.test(lower) || /యూట్యూబ్|యుట్యూబ్|పాట|यूट्यूब|யூடியூப்/.test(text)) {
-        const q = text.replace(/youtube|lo|play|chey|cheyi|karo|open|యూట్యూబ్|యుట్యూబ్|ఓపెన్|చేయి|చేయ్/gi, '').trim() || 'Telugu hits';
-        if (window.AndroidNative && window.AndroidNative.openYouTube) window.AndroidNative.openYouTube(q);
-        const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-        const msg = isTe ? `🎵 YouTube తెరుస్తున్నాను (${q}).` : `🎵 Opening YouTube (${q}).`;
-        appendMessage('aura', msg, [{ label: `Open YouTube: ${q}`, url: ytUrl, auto_trigger: true }]);
+        const q = text.replace(/youtube|lo|play|search|chey|cheyi|karo|open|and|యూట్యూబ్|యుట్యూబ్|ఓపెన్|చేయి|చేయ్/gi, '').trim();
+        if (!q && /\b(open|launch|start|teruvu)\b/i.test(text)) {
+          if (window.AndroidNative && window.AndroidNative.openApp) window.AndroidNative.openApp('youtube');
+          const msg = isTe ? '🎵 YouTube యాప్ తెరుస్తున్నాను.' : '🎵 Opening YouTube app.';
+          appendMessage('aura', msg, [{ label: 'Open YouTube', url: 'https://m.youtube.com', auto_trigger: !window.AndroidNative }]);
+          speakReply(msg, lang, 'Opening YouTube');
+          return;
+        }
+        const searchQ = q || 'Telugu hits';
+        if (window.AndroidNative && window.AndroidNative.openYouTube) window.AndroidNative.openYouTube(searchQ);
+        const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQ)}`;
+        const msg = isTe ? `🎵 YouTube తెరుస్తున్నాను (${searchQ}).` : `🎵 Opening YouTube (${searchQ}).`;
+        appendMessage('aura', msg, [{ label: `Open YouTube: ${searchQ}`, url: ytUrl, auto_trigger: !window.AndroidNative }]);
         speakReply(msg, lang, 'Opening YouTube');
         return;
       }
 
       if (/\b(navigate|maps|direction|charminar)\b/.test(lower) || /మ్యాప్స్|నావిగేట్|చార్మినార్/.test(text)) {
-        const dest = text.replace(/navigate|to|maps|ki|vellu|open|మ్యాప్స్|ఓపెన్|చేయి/gi, '').trim() || 'Charminar';
+        const dest = text.replace(/navigate|to|maps|google|ki|vellu|open|and|మ్యాప్స్|ఓపెన్|చేయి/gi, '').trim() || 'Charminar';
         if (window.AndroidNative && window.AndroidNative.navigateMaps) window.AndroidNative.navigateMaps(dest);
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest)}`;
         const msg = isTe ? `🗺️ Google Maps లో ${dest} కి నావిగేట్ చేస్తున్నాను.` : `🗺️ Navigating to ${dest} in Google Maps.`;
-        appendMessage('aura', msg, [{ label: `Navigate: ${dest}`, url: mapUrl, auto_trigger: true }]);
+        appendMessage('aura', msg, [{ label: `Navigate: ${dest}`, url: mapUrl, auto_trigger: !window.AndroidNative }]);
         speakReply(msg, lang, 'Opening Google Maps');
+        return;
+      }
+
+      // Universal Real Android App Launcher ("open <any app>", "<app> open chey", "<app> kholo")
+      const openAppMatch = text.match(/^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:open|launch|start)\s+(.+)$/i)
+        || text.match(/^(.+?)\s+(?:open\s*chey|open\s*cheyi|open\s*karo|kholo|teruvu|ఓపెన్\s*చేయి|ఓపెన్\s*చేయ్|తెరువు|खोलो)$/i);
+      if (openAppMatch) {
+        const appRaw = openAppMatch[1].trim();
+        const appLow = appRaw.toLowerCase();
+        if (window.AndroidNative && window.AndroidNative.openApp) {
+          window.AndroidNative.openApp(appRaw);
+        }
+        const webFallbacks = {
+          whatsapp: 'whatsapp://',
+          instagram: 'https://www.instagram.com/',
+          youtube: 'https://m.youtube.com',
+          spotify: 'https://open.spotify.com',
+          jiosaavn: 'https://www.jiosaavn.com',
+          snapchat: 'https://www.snapchat.com',
+          telegram: 'https://web.telegram.org',
+          facebook: 'https://m.facebook.com',
+          twitter: 'https://x.com',
+          linkedin: 'https://www.linkedin.com',
+          amazon: 'https://www.amazon.in',
+          flipkart: 'https://www.flipkart.com',
+          meesho: 'https://www.meesho.com',
+          myntra: 'https://www.myntra.com',
+          swiggy: 'https://www.swiggy.com',
+          zomato: 'https://www.zomato.com',
+          uber: 'https://m.uber.com',
+          ola: 'https://book.olacabs.com',
+          netflix: 'https://www.netflix.com',
+          hotstar: 'https://www.hotstar.com',
+          chrome: 'https://www.google.com',
+          gmail: 'https://mail.google.com',
+          maps: 'https://maps.google.com',
+        };
+        let appUrl = `https://www.google.com/search?q=${encodeURIComponent(appRaw)}`;
+        for (const [k, u] of Object.entries(webFallbacks)) {
+          if (appLow.includes(k)) { appUrl = u; break; }
+        }
+        const displayApp = appRaw.charAt(0).toUpperCase() + appRaw.slice(1);
+        const msg = isTe
+          ? `🚀 ${displayApp} యాప్ తెరుస్తున్నాను.`
+          : (isHi ? `🚀 ${displayApp} ऐप खोल रही हूँ।` : `🚀 Opening ${displayApp} app.`);
+        appendMessage('aura', msg, [{ label: `Open ${displayApp}`, url: appUrl, auto_trigger: !window.AndroidNative }]);
+        speakReply(msg, lang, `Opening ${displayApp}`);
         return;
       }
 
