@@ -305,12 +305,12 @@
     <header>
       <div class="brand">
         <div class="brand-dot"></div>
-        <h1>Aura <span style="font-size:0.75rem;padding:2px 6px;background:rgba(34,211,238,0.18);border:1px solid rgba(34,211,238,0.4);color:var(--cyan);border-radius:6px;font-weight:700;">v2</span></h1>
+        <h1>Aura <span style="font-size:0.75rem;padding:2px 6px;background:rgba(34,211,238,0.18);border:1px solid rgba(34,211,238,0.4);color:var(--cyan);border-radius:6px;font-weight:700;">v3</span></h1>
         <span class="badge" id="modeBadge">Smart Offline Ready</span>
         <span class="badge" style="color:#4ade80;border-color:rgba(74,222,128,0.3)" title="Your contacts, files & photos stay 100% local on your device. On-screen photos are never scanned, and Photos/Files/Camera require explicit permission.">🔒 100% Local Data & Privacy Shield</span>
       </div>
       <div class="header-actions">
-        <a class="icon-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="text-decoration:none;border-color:#4ade80;color:#4ade80" title="Download Signed Android APK">📲 APK</a>
+        <a class="icon-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="text-decoration:none;border-color:#4ade80;color:#4ade80" title="Download Signed Android APK (v3)">📲 APK v3</a>
         <button class="icon-btn" style="border-color:var(--cyan);color:var(--cyan)" onclick="runLiveDemo()">🎬 Auto-Demo</button>
         <button class="icon-btn" onclick="togglePhonePanel()">📱 Phone Link</button>
         <button class="icon-btn" onclick="toggleRoutinesPanel()">⚡ Routines</button>
@@ -348,14 +348,14 @@
           <option value="1400">⏱️ Word Gap: 1.4s (Fast)</option>
         </select>
         <button class="icon-btn active" id="wakeWordBtn" onclick="toggleHandsFree()">🎙️ Auto-Continue: ON</button>
-        <button class="icon-btn" onclick="window.enableFloatingDisplayOverApps()" style="border-color:#00f5d4;color:#00f5d4">🪟 Display Over Other Apps</button>
+        <button class="icon-btn" id="floatingOverlayBtn" onclick="window.enableFloatingDisplayOverApps()" style="border-color:#00f5d4;color:#00f5d4">🪟 Display Over Other Apps</button>
         <button class="icon-btn" onclick="window.triggerScreenReaderAndContinue()" style="border-color:#ffd166;color:#ffd166">📖 Screen Reader & Next Task</button>
         <button class="icon-btn" id="liveStreamBtn" onclick="toggleGeminiLiveStream()">⚡ Live WS: OFF</button>
         <button class="icon-btn" onclick="syncRealPhoneContacts()" style="border-color:var(--green);color:var(--green)">🛡️ Permissions & Real Contacts</button>
         <button class="icon-btn" onclick="setAsDefaultAssistant()" style="border-color:var(--cyan);color:var(--cyan)">🤖 Set Default Assistant</button>
       </div>
       <div id="activeScreenBadge" style="margin-top:8px;font-size:0.78rem;padding:4px 12px;border-radius:999px;background:rgba(0,245,212,0.12);border:1px solid rgba(0,245,212,0.3);color:#00f5d4;display:inline-block">
-        📱 Present Screen Context: <b>Aura Assistant</b> (Floating Screen Reader Ready)
+        📱 Present Screen Context: <b>Aura Assistant v3</b> (Floating Screen Reader Ready)
       </div>
     </section>
 
@@ -388,8 +388,8 @@
           <button class="action-btn" onclick="setAsDefaultAssistant()" style="padding:6px 12px;font-size:0.78rem">🤖 3. Set as Default Digital Assistant</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span>📦 <b>Native Android APK (v2.1):</b></span>
-          <a class="action-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="padding:4px 10px;font-size:0.76rem">📲 Download AuraAssistant.apk</a>
+          <span>📦 <b>Native Android APK (v3.0):</b></span>
+          <a class="action-btn" href="/download/AuraAssistant.apk" download="AuraAssistant.apk" style="padding:4px 10px;font-size:0.76rem">📲 Download AuraAssistant.apk (v3)</a>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span>🌐 <b>Open on Phone Wi-Fi Browser:</b> <code id="mobileUrlCode" style="color:var(--cyan)">http://localhost:8000</code></span>
@@ -2593,10 +2593,10 @@
 
       if (/\b(who are you|your name|what can you do|help)\b/.test(lower) || /నువ్వు ఎవరు|మీరు ఎవరు|ఏం చేయగలవు|तुम कौन हो|क्या कर सकते हो/.test(text)) {
         const msg = isTe
-          ? '🤖 నమస్కారం! నేను ఆరా (Aura v2.2) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp మెసేజ్‌లు పంపగలను, ఏ యాప్‌నైనా (Instagram, YouTube, Maps, Spotify, Amazon, Flipkart) ఓపెన్ చేసి పని చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
+          ? '🤖 నమస్కారం! నేను ఆరా (Aura v3.0) — మీ మల్టీలింగ్వల్ AI వాయిస్ అసిస్టెంట్. నేను మీ ఫోన్ కాంటాక్ట్స్‌కి కాల్ చేయగలను, WhatsApp మెసేజ్‌లు పంపగలను, ఏ యాప్‌నైనా (Instagram, YouTube, Maps, Spotify, Amazon, Flipkart) ఓపెన్ చేసి ఫ్లోటింగ్ స్క్రీన్ రీడర్‌తో పని చేయగలను, మరియు తెలుగు, హిందీ, తమిళ్, ఇంగ్లీష్ భాషల్లో ఏ ప్రశ్నకైనా సమాధానం చెప్పగలను!'
           : (isHi
-            ? '🤖 नमस्ते! मैं ऑरा (Aura v2.2) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल और व्हाट्सऐप मैसेज कर सकती हूँ, कोई भी ऐप खोल सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
-            : '🤖 Hello! I am Aura v2.2, your multilingual Android AI Assistant. I can open any real app (Instagram, WhatsApp, YouTube, Maps, Spotify, Amazon, Flipkart), execute multi-step commands, call or message your real phone contacts, and answer any question!');
+            ? '🤖 नमस्ते! मैं ऑरा (Aura v3.0) हूँ — आपकी बहुभाषी AI वॉइस असिस्टेंट। मैं आपके फोन कॉन्टैक्ट्स को कॉल और व्हाट्सऐप मैसेज कर सकती हूँ, कोई भी ऐप खोल सकती हूँ, और किसी भी सवाल का जवाब दे सकती हूँ!'
+            : '🤖 Hello! I am Aura v3.0, your multilingual Android AI Assistant with Display-Over-Other-Apps Floating Screen Reader. I can open any real app (Instagram, WhatsApp, YouTube, Maps, Spotify, Amazon, Flipkart), execute commands inside active apps, call or message your real phone contacts, and answer any question!');
         appendMessage('aura', msg);
         speakReply(msg, lang);
         return;
@@ -2854,8 +2854,8 @@
       } catch (e) {}
 
       const fallbackMsg = isTe
-        ? `నమస్కారం! నేను ఆరా (Aura v2). ఏదైనా ప్రశ్నలకు పూర్తి AI సమాధానాల కోసం పైన ఉన్న ⚙️ Settings లో మీ Gemini API Key ని సేవ్ చేయండి, లేదా 'అమ్మ కి కాల్ చేయి', 'వాట్సప్ ఓపెన్ చేయ్' అని చెప్పండి!`
-        : `I'm ready! Open ⚙️ Settings at the top-right to save your Gemini API Key for unlimited Q&A, or say 'Call Amma', 'Open WhatsApp', or 'Play Telugu songs on YouTube'!`;
+        ? `నమస్కారం! నేను ఆరా (Aura v3.0). ఏదైనా ప్రశ్నలకు పూర్తి AI సమాధానాల కోసం పైన ఉన్న ⚙️ Settings లో మీ Gemini API Key ని సేవ్ చేయండి, లేదా 'అమ్మ కి కాల్ చేయి', 'వాట్సప్ ఓపెన్ చేయ్' అని చెప్పండి!`
+        : `I'm ready (Aura v3.0)! Open ⚙️ Settings at the top-right to save your Gemini API Key for unlimited Q&A, or say 'Call Amma', 'Open WhatsApp', or 'Play Telugu songs on YouTube'!`;
       appendMessage('aura', fallbackMsg);
       speakReply(fallbackMsg, lang);
     }

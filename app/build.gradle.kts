@@ -19,8 +19,8 @@ android {
         applicationId = "com.aura.voiceassistant"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "2.2.0"
+        versionCode = 5
+        versionName = "3.0.0"
         resValue("string", "default_gemini_key", geminiKeyFromEnv)
     }
 
