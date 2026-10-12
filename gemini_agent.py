@@ -796,10 +796,23 @@ class AuraGeminiAgent:
         if not cleaned_input:
             cleaned_input = normalized_input
 
-        if not self.api_key:
-            return self._offline_multilingual_fallback(cleaned_input, language_hint=language_hint)
+        # 1. Always run instant local multilingual automation & privacy engine first (<10ms)
+        local_result = self._offline_multilingual_fallback(cleaned_input, language_hint=language_hint)
+        if (
+            local_result.get("executed_tools")
+            or local_result.get("client_actions")
+            or self.pending_intent is not None
+            or "🔒" in local_result.get("reply", "")
+            or "🌸" in local_result.get("reply", "")
+            or "✅" in local_result.get("reply", "")
+        ):
+            return local_result
 
-        client = genai.Client(api_key=self.api_key)
+        # 2. For open-ended questions, use Gemini API if a valid AI Studio key (starts with AIza) is configured
+        if not self.api_key or not self.api_key.strip().startswith("AIza"):
+            return local_result
+
+        client = genai.Client(api_key=self.api_key.strip(), http_options={"timeout": 4500})
         tools = get_interactions_tools()
         sys_instruction = self._build_system_instruction(language_hint)
 
