@@ -741,13 +741,34 @@ class AuraGeminiAgent:
 
     @staticmethod
     def _finalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Attaches clean spoken_reply (no raw phone digits) and spoken_phonetic (Romanized Indic fallback)."""
-        reply_text = payload.get("reply", "")
+        """
+        Attaches clean spoken_reply (no raw phone digits), spoken_phonetic (Romanized Indic fallback),
+        and ensures Aura NEVER relaxes after completing a task — always asking for the next command.
+        """
+        reply_text = payload.get("reply", "").strip()
+        lang = payload.get("detected_language", "en")
+        next_prompts = {
+            "te": "తర్వాత ఏం చేయమంటారు?",
+            "hi": "अब अगला काम क्या करना है?",
+            "ta": "அடுத்து என்ன செய்ய வேண்டும்?",
+            "en": "What command should I perform next?",
+        }
+        next_q = next_prompts.get(lang, next_prompts["en"])
+        if (
+            reply_text
+            and not reply_text.endswith("?")
+            and not payload.get("is_default_fallback")
+            and next_q not in reply_text
+        ):
+            reply_text = f"{reply_text} {next_q}"
+            payload["reply"] = reply_text
+
         spoken = clean_text_for_tts(reply_text)
         phonetic = clean_text_for_tts(transliterate_indic_to_latin(spoken))
         phonetic = re.sub(r"\s+", " ", phonetic).strip()
         payload["spoken_reply"] = spoken
         payload["spoken_phonetic"] = phonetic
+        payload["ask_next_task"] = True
         return payload
 
     def execute_tool(self, name: str, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -892,11 +913,11 @@ class AuraGeminiAgent:
             return [text.strip()]
 
         action_start_re = re.compile(
-            r"^(?:open|launch|start|call|phone|dial|send|whatsapp|message|msg|sms|play|search|find|show|watch|navigate|go\s+to|directions\s+to|turn\s+on|turn\s+off|switch\s+on|switch\s+off|enable|disable|set|check|scroll|swipe|select|click|tap|volume|mute|unmute|what\s+is|who\s+is|tell\s+me|calculate|battery|time|date|torch|flashlight|hii|hi|hello)\b",
+            r"^(?:open|launch|start|call|phone|dial|send|whatsapp|message|msg|sms|play|search|find|show|watch|navigate|go\s+to|directions\s+to|turn\s+on|turn\s+off|switch\s+on|switch\s+off|enable|disable|set|check|scroll|swipe|select|click|tap|read\s+screen|read\s+the\s+screen|screen\s+reader|read|volume|mute|unmute|what\s+is|who\s+is|tell\s+me|calculate|battery|time|date|torch|flashlight|hii|hi|hello)\b",
             flags=re.IGNORECASE,
         )
         indic_action_re = re.compile(
-            r"(?:కాల్|ఫోన్|వాట్సప్|మెసేజ్|ఓపెన్|తెరువు|ప్లే|స్క్రోల్|సెలెక్ట్|బ్యాటరీ|టార్చ్|టైమ్|कॉल|व्हाट्सएप|खोलो|चलाओ|बैटरी|टॉर्च|\b(?:chey|cheyi|karo|pampu|bhejo|kholo|teruvu|entha|batao)\b)",
+            r"(?:కాల్|ఫోన్|వాట్సప్|మెసేజ్|ఓపెన్|తెరువు|ప్లే|స్క్రోల్|సెలెక్ట్|స్క్రీన్|బ్యాటరీ|టార్చ్|టైమ్|कॉल|व्हाट्सएप|खोलो|चलाओ|स्क्रीन|बैटरी|टॉर्च|\b(?:chey|cheyi|karo|pampu|bhejo|kholo|teruvu|entha|batao|chaduvu|padho)\b)",
             flags=re.IGNORECASE,
         )
         in_app_task_re = re.compile(
@@ -1700,6 +1721,55 @@ class AuraGeminiAgent:
                     "executed_tools": executed_tools,
                     "client_actions": client_actions,
                 })
+
+        # 6b. Screen Reader ("read screen", "what is on screen", "screen reader", "స్క్రీన్ చదువు", "स्क्रीन पढ़ो")
+        if (
+            any(
+                w in lower
+                for w in [
+                    "read screen",
+                    "read the screen",
+                    "what is on screen",
+                    "what is on my screen",
+                    "whats on screen",
+                    "screen reader",
+                    "screen chaduvu",
+                    "screen chadavandi",
+                    "screen lo emundi",
+                    "screen padho",
+                    "screen me kya hai",
+                    "స్క్రీన్ చదువు",
+                    "స్క్రీన్ లో ఏముంది",
+                    "स्क्रीन पढ़ो",
+                    "स्क्रीन पर क्या है",
+                ]
+            )
+            and "photo" not in lower
+            and "image" not in lower
+        ):
+            res = self.automation.read_screen_elements()
+            executed_tools.append({"name": "read_screen_elements", "args": {}, "result": res})
+            elements = res.get("elements") or []
+            labels = [e.get("text") or e.get("content_desc") for e in elements if (e.get("text") or e.get("content_desc"))]
+            top_labels = ", ".join(labels[:6]) if labels else "Aura Voice Orb, Quick Action Chips, Contacts & Permissions"
+            reply_msg = (
+                f"📖 స్క్రీన్ రీడర్: ప్రస్తుతం స్క్రీన్ పై '{top_labels}' కనిపిస్తున్నాయి."
+                if lang == "te"
+                else (
+                    f"📖 स्क्रीन रीडर: अभी स्क्रीन पर '{top_labels}' दिख रहे हैं।"
+                    if lang == "hi"
+                    else f"📖 Screen Reader: Currently visible on screen — {top_labels}."
+                )
+            )
+            return self._finalize_response({
+                "status": "ok",
+                "mode": "offline_smart_engine",
+                "normalized_input": text,
+                "detected_language": lang,
+                "reply": reply_msg,
+                "executed_tools": executed_tools,
+                "client_actions": client_actions,
+            })
 
         # 7. Screen Tap / Select ("tap Send", "select Telugu", "click Contacts", "Telugu select chey", "తెలుగు సెలెక్ట్ చేయి")
         tap_patterns = [

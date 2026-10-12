@@ -347,7 +347,8 @@
           <option value="3400">⏱️ Word Gap: 3.4s (Slow / Relaxed)</option>
           <option value="1400">⏱️ Word Gap: 1.4s (Fast)</option>
         </select>
-        <button class="icon-btn" id="wakeWordBtn" onclick="toggleHandsFree()">🎙️ Hands-Free: OFF</button>
+        <button class="icon-btn active" id="wakeWordBtn" onclick="toggleHandsFree()">🎙️ Auto-Continue: ON</button>
+        <button class="icon-btn" onclick="window.triggerScreenReaderAndContinue()" style="border-color:#ffd166;color:#ffd166">📖 Screen Reader & Next Task</button>
         <button class="icon-btn" id="liveStreamBtn" onclick="toggleGeminiLiveStream()">⚡ Live WS: OFF</button>
         <button class="icon-btn" onclick="syncRealPhoneContacts()" style="border-color:var(--green);color:var(--green)">🛡️ Permissions & Real Contacts</button>
         <button class="icon-btn" onclick="setAsDefaultAssistant()" style="border-color:var(--cyan);color:var(--cyan)">🤖 Set Default Assistant</button>
@@ -355,6 +356,7 @@
     </section>
 
     <div class="chips">
+      <button class="chip" onclick="window.triggerScreenReaderAndContinue()" style="border-color:#ffd166;color:#ffd166">📖 Read Screen & Ask Next Command</button>
       <button class="chip" onclick="syncRealPhoneContacts()">🛡️ Grant Permissions & Sync Phone Contacts</button>
       <button class="chip" onclick="sendQuick('Open Instagram')" style="border-color:#ff007f;color:#ff85c1">📸 Open Instagram</button>
       <button class="chip" onclick="sendQuick('Open Instagram and open Reels')" style="border-color:#ff007f;color:#ff85c1">🎬 Open Instagram Reels</button>
@@ -496,7 +498,9 @@
   <script>
     let recognition = null;
     let userWantsListening = false;
-    let handsFreeMode = false;
+    let handsFreeMode = true; // Continuous Task Loop: Never relax after completing a task!
+    let isAuraSpeaking = false;
+    let autoListenTimer = null;
     let accumulatedFinalText = '';
     let latestInterimText = '';
     let silenceTimer = null;
@@ -780,6 +784,37 @@
       }, getPauseWaitMs());
     }
 
+    function pauseRecognitionForSpeech() {
+      isAuraSpeaking = true;
+      if (autoListenTimer) {
+        clearTimeout(autoListenTimer);
+        autoListenTimer = null;
+      }
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+      }
+    }
+
+    function scheduleAutoListenForNextTask() {
+      isAuraSpeaking = false;
+      document.getElementById('orbBtn').classList.remove('speaking');
+      if (!handsFreeMode || liveWs) return;
+      if (autoListenTimer) clearTimeout(autoListenTimer);
+      autoListenTimer = setTimeout(() => {
+        if (!handsFreeMode || isAuraSpeaking || liveWs) return;
+        if (!recognition) initSpeech();
+        if (!recognition) return;
+        accumulatedFinalText = '';
+        latestInterimText = '';
+        userWantsListening = true;
+        recognition.lang = document.getElementById('voiceLang').value;
+        document.getElementById('orbBtn').classList.add('listening');
+        document.getElementById('orbStatus').innerText =
+          '🎙️ Task Complete — Listening for your next command! Speak anytime...';
+        try { recognition.start(); } catch (e) {}
+      }, 320);
+    }
+
     function flushSpokenBufferNow() {
       if (silenceTimer) {
         clearTimeout(silenceTimer);
@@ -790,12 +825,11 @@
       latestInterimText = '';
       document.getElementById('livePreviewBox').classList.remove('active');
 
-      if (!handsFreeMode) {
-        userWantsListening = false;
-        document.getElementById('orbBtn').classList.remove('listening');
-        if (recognition) {
-          try { recognition.stop(); } catch (e) {}
-        }
+      // Pause mic while executing & speaking the reply; scheduleAutoListenForNextTask() will re-open mic automatically!
+      userWantsListening = false;
+      document.getElementById('orbBtn').classList.remove('listening');
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
       }
       if (fullText) {
         sendCommand(fullText);
@@ -813,12 +847,17 @@
       recognition.lang = document.getElementById('voiceLang').value;
 
       recognition.onstart = () => {
+        if (isAuraSpeaking) {
+          try { recognition.stop(); } catch (e) {}
+          return;
+        }
         document.getElementById('orbBtn').classList.add('listening');
         document.getElementById('orbStatus').innerText =
-          'Listening... Speak freely (pauses between words are joined automatically)';
+          '🎙️ Listening... Speak freely (pauses between words are joined automatically)';
       };
 
       recognition.onresult = (event) => {
+        if (isAuraSpeaking) return;
         let interim = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcriptPiece = event.results[i][0].transcript.trim();
@@ -839,11 +878,12 @@
       };
 
       recognition.onend = () => {
+        if (isAuraSpeaking) return;
         // If the browser cut off during a word gap while the user is still in a speaking session,
         // immediately resume listening so the next word joins the same sentence!
-        if (userWantsListening || handsFreeMode) {
+        if (userWantsListening) {
           setTimeout(() => {
-            if (userWantsListening || handsFreeMode) {
+            if (userWantsListening && !isAuraSpeaking) {
               try {
                 recognition.lang = document.getElementById('voiceLang').value;
                 recognition.start();
@@ -852,7 +892,9 @@
           }, 150);
         } else {
           document.getElementById('orbBtn').classList.remove('listening');
-          document.getElementById('orbStatus').innerText = 'Tap the Orb & speak at your own pace';
+          document.getElementById('orbStatus').innerText = handsFreeMode
+            ? '🎙️ Auto-Continue Ready — Tap Orb or wait for prompt'
+            : 'Tap the Orb & speak at your own pace';
         }
       };
     }
@@ -867,6 +909,16 @@
       if (liveWs) {
         toggleGeminiLiveStream();
         return;
+      }
+      if (isAuraSpeaking) {
+        // If Aura is currently speaking and user taps the Orb, stop speech and listen immediately!
+        if (currentTtsAudio) {
+          try { currentTtsAudio.pause(); } catch (e) {}
+          currentTtsAudio = null;
+        }
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        isAuraSpeaking = false;
+        document.getElementById('orbBtn').classList.remove('speaking');
       }
       toggleVoiceRecognition();
     }
@@ -889,15 +941,18 @@
       }
     }
 
-    function toggleHandsFree() {
-      handsFreeMode = !handsFreeMode;
+    function toggleHandsFree(forceState = null) {
+      handsFreeMode = forceState !== null ? Boolean(forceState) : !handsFreeMode;
       const btn = document.getElementById('wakeWordBtn');
-      btn.classList.toggle('active', handsFreeMode);
-      btn.innerText = handsFreeMode ? '🎙️ Hands-Free: ON' : '🎙️ Hands-Free: OFF';
-      if (handsFreeMode && !userWantsListening) {
+      if (btn) {
+        btn.classList.toggle('active', handsFreeMode);
+        btn.innerText = handsFreeMode ? '🎙️ Auto-Continue: ON' : '🎙️ Auto-Continue: OFF';
+      }
+      if (handsFreeMode && !userWantsListening && !isAuraSpeaking) {
         toggleVoiceRecognition();
       } else if (!handsFreeMode) {
         userWantsListening = false;
+        if (autoListenTimer) { clearTimeout(autoListenTimer); autoListenTimer = null; }
         if (recognition) {
           try { recognition.stop(); } catch (e) {}
         }
@@ -1531,9 +1586,29 @@
     }
 
     let currentTtsAudio = null;
+    window.lastScreenReaderActions = [];
+    window.lastExternalLaunchLabel = null;
+
+    function formatWithNextTaskPrompt(rawText, langHint = '', skipPrompt = false) {
+      const base = String(rawText || '').trim();
+      if (!base || skipPrompt || !handsFreeMode) return base;
+      if (base.endsWith('?') || base.includes('What command should I perform next') || base.includes('తర్వాత ఏం చేయమంటారు') || base.includes('अगला काम क्या करना है')) {
+        return base;
+      }
+      const hasTe = /[\u0C00-\u0C7F]/.test(base) || langHint === 'te' || document.getElementById('voiceLang')?.value === 'te-IN';
+      const hasHi = /[\u0900-\u097F]/.test(base) || langHint === 'hi' || document.getElementById('voiceLang')?.value === 'hi-IN';
+      const suffix = hasTe
+        ? ' తర్వాత ఏం చేయమంటారు?'
+        : (hasHi ? ' अब अगला काम क्या करना है?' : ' What command should I perform next?');
+      return base + suffix;
+    }
 
     function speakBrowserFallback(spokenText, langPrefix, spokenPhonetic) {
-      if (!('speechSynthesis' in window)) return;
+      pauseRecognitionForSpeech();
+      if (!('speechSynthesis' in window)) {
+        scheduleAutoListenForNextTask();
+        return;
+      }
       window.speechSynthesis.cancel();
       const langMap = { hi: 'hi-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', mr: 'mr-IN', es: 'es-ES', en: 'en-IN' };
       const bcp47 = langMap[langPrefix] || document.getElementById('voiceLang').value || 'en-IN';
@@ -1552,13 +1627,25 @@
         if (enInVoice) utter.voice = enInVoice;
         utter.lang = 'en-IN';
       }
-      utter.onstart = () => document.getElementById('orbBtn').classList.add('speaking');
-      utter.onend = () => document.getElementById('orbBtn').classList.remove('speaking');
+      utter.onstart = () => {
+        pauseRecognitionForSpeech();
+        document.getElementById('orbBtn').classList.add('speaking');
+      };
+      utter.onend = () => {
+        scheduleAutoListenForNextTask();
+      };
+      utter.onerror = () => {
+        scheduleAutoListenForNextTask();
+      };
       window.speechSynthesis.speak(utter);
     }
 
-    function speakReply(spokenText, detectedLang, spokenPhonetic = '') {
-      if (!spokenText) return;
+    function speakReply(spokenText, detectedLang, spokenPhonetic = '', skipNextTaskPrompt = false) {
+      if (!spokenText) {
+        scheduleAutoListenForNextTask();
+        return;
+      }
+      pauseRecognitionForSpeech();
       if (currentTtsAudio) {
         try { currentTtsAudio.pause(); } catch (e) {}
         currentTtsAudio = null;
@@ -1570,30 +1657,43 @@
       const selectedLang = document.getElementById('voiceLang').value || 'en-IN';
       const langPrefix = (detectedLang || selectedLang.split('-')[0] || 'en').toLowerCase();
 
+      const fullSpoken = formatWithNextTaskPrompt(spokenText, langPrefix, skipNextTaskPrompt);
+      const fullPhonetic = spokenPhonetic
+        ? (skipNextTaskPrompt || spokenPhonetic.trim().endsWith('?') ? spokenPhonetic : `${spokenPhonetic}. What command should I perform next?`)
+        : '';
+
       // Use backend /api/tts (with local disk cache) for authentic Telugu, Tamil, Hindi, Bengali, Marathi, Spanish, English speech
-      const ttsUrl = `${getApiBaseUrl()}/api/tts?text=${encodeURIComponent(spokenText)}&lang=${encodeURIComponent(langPrefix)}`;
+      const ttsUrl = `${getApiBaseUrl()}/api/tts?text=${encodeURIComponent(fullSpoken)}&lang=${encodeURIComponent(langPrefix)}`;
       const audio = new Audio(ttsUrl);
       currentTtsAudio = audio;
 
-      audio.onplay = () => document.getElementById('orbBtn').classList.add('speaking');
-      audio.onended = () => document.getElementById('orbBtn').classList.remove('speaking');
+      audio.onplay = () => {
+        pauseRecognitionForSpeech();
+        document.getElementById('orbBtn').classList.add('speaking');
+      };
+      audio.onended = () => {
+        scheduleAutoListenForNextTask();
+      };
       audio.onerror = () => {
-        document.getElementById('orbBtn').classList.remove('speaking');
-        speakBrowserFallback(spokenText, langPrefix, spokenPhonetic);
+        speakBrowserFallback(fullSpoken, langPrefix, fullPhonetic);
       };
 
       audio.play().catch(() => {
-        speakBrowserFallback(spokenText, langPrefix, spokenPhonetic);
+        speakBrowserFallback(fullSpoken, langPrefix, fullPhonetic);
       });
     }
 
-    function appendMessage(role, text, actions = [], speechMeta = null) {
+    function appendMessage(role, text, actions = [], speechMeta = null, skipNextTaskPrompt = false) {
       const box = document.getElementById('chatBox');
       const div = document.createElement('div');
       div.className = 'msg ' + role;
 
+      const displayMsg = (role === 'aura')
+        ? formatWithNextTaskPrompt(text, speechMeta?.detected_language || '', skipNextTaskPrompt)
+        : text;
+
       const span = document.createElement('span');
-      span.innerText = text;
+      span.innerText = displayMsg;
       div.appendChild(span);
 
       if (role === 'aura') {
@@ -1603,10 +1703,10 @@
         replayBtn.style.padding = '3px 8px';
         replayBtn.style.fontSize = '0.72rem';
         replayBtn.innerText = '🔊 Speak';
-        const sText = (speechMeta && speechMeta.spoken_reply) ? speechMeta.spoken_reply : text;
+        const sText = (speechMeta && speechMeta.spoken_reply) ? speechMeta.spoken_reply : displayMsg;
         const sLang = (speechMeta && speechMeta.detected_language) ? speechMeta.detected_language : '';
         const sPhon = (speechMeta && speechMeta.spoken_phonetic) ? speechMeta.spoken_phonetic : '';
-        replayBtn.onclick = () => speakReply(sText, sLang, sPhon);
+        replayBtn.onclick = () => speakReply(sText, sLang, sPhon, true);
         div.appendChild(replayBtn);
       }
 
@@ -1619,6 +1719,7 @@
           card.innerHTML = `<span>⚡ ${act.label}</span><a class="action-btn" href="${act.url}" target="_blank">Execute Now</a>`;
           box.appendChild(card);
           if (act.auto_trigger) {
+            window.lastExternalLaunchLabel = act.label || 'External App';
             setTimeout(() => {
               try {
                 const lblLow = String(act.label || '').toLowerCase();
@@ -1639,6 +1740,90 @@
       }
     }
 
+    // Screen Reader: Reads current screen content, latest assistant output, action cards & available buttons, then asks for the next command!
+    window.readCurrentScreenDom = function() {
+      let nativeSummary = '';
+      if (window.AndroidNative && window.AndroidNative.readScreenSummary) {
+        try { nativeSummary = String(window.AndroidNative.readScreenSummary() || ''); } catch (e) {}
+      }
+
+      const auraMsgs = Array.from(document.querySelectorAll('#chatBox .msg.aura span'))
+        .map(el => (el.innerText || el.textContent || '').trim())
+        .filter(Boolean);
+      const latestReply = auraMsgs.length > 0 ? auraMsgs[auraMsgs.length - 1] : 'Aura Assistant Home Screen';
+
+      const actionCards = Array.from(document.querySelectorAll('#chatBox .action-card')).slice(-3).map((card, idx) => {
+        const lbl = (card.querySelector('span')?.innerText || '').replace(/^⚡\s*/, '').trim();
+        const link = card.querySelector('a.action-btn');
+        return { index: idx + 1, label: lbl || `Action ${idx + 1}`, element: link, url: link?.href || '' };
+      });
+
+      const quickChips = Array.from(document.querySelectorAll('.chips .chip')).slice(0, 6).map((btn, idx) => ({
+        index: idx + 1,
+        label: (btn.innerText || '').trim(),
+        element: btn
+      }));
+
+      window.lastScreenReaderActions = actionCards.length > 0 ? actionCards : quickChips;
+
+      return {
+        nativeSummary,
+        latestReply: latestReply.replace(/\s*(What command should I perform next\?|తర్వాత ఏం చేయమంటారు\?|अब अगला काम क्या करना है\?)\s*$/i, '').trim(),
+        actionCards,
+        quickChips
+      };
+    };
+
+    window.triggerScreenReaderAndContinue = function() {
+      const info = window.readCurrentScreenDom();
+      const selLang = document.getElementById('voiceLang')?.value || 'en-IN';
+      const isTe = selLang === 'te-IN';
+      const isHi = selLang === 'hi-IN';
+      const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+
+      const actionNames = (info.actionCards.length > 0 ? info.actionCards : info.quickChips.slice(1, 5))
+        .map((a, i) => `(${i + 1}) ${a.label}`)
+        .join(', ');
+
+      const msg = isTe
+        ? `📖 స్క్రీన్ రీడర్: ప్రస్తుతం స్క్రీన్ పై "${info.latestReply.slice(0, 120)}" ఉంది. అందుబాటులో ఉన్న ఆప్షన్లు: ${actionNames}. తర్వాత ఏం చేయమంటారు? తదుపరి కమాండ్ చెప్పండి.`
+        : (isHi
+          ? `📖 स्क्रीन रीडर: अभी स्क्रीन पर "${info.latestReply.slice(0, 120)}" दिख रहा है। उपलब्ध विकल्प: ${actionNames}। अब अगला काम क्या करना है?`
+          : `📖 Screen Reader: On your screen right now — "${info.latestReply.slice(0, 120)}". Available actions: ${actionNames}. What command should I perform next?`);
+
+      const phon = `Screen Reader active. On your screen: ${info.latestReply.slice(0, 90)}. What command should I perform next?`;
+      appendMessage('aura', msg, [], null, true);
+      speakReply(msg, lang, phon, true);
+    };
+
+    window.onReturnedFromExternalApp = function(taskName) {
+      const cleanTask = String(taskName || window.lastExternalLaunchLabel || 'previous task').trim();
+      window.lastExternalLaunchLabel = null;
+      const selLang = document.getElementById('voiceLang')?.value || 'en-IN';
+      const isTe = selLang === 'te-IN';
+      const isHi = selLang === 'hi-IN';
+      const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+
+      const msg = isTe
+        ? `✅ "${cleanTask}" పూర్తయింది! 📖 స్క్రీన్ రీడర్ సిద్ధంగా ఉంది — నేను విశ్రాంతి తీసుకోవడం లేదు. తర్వాత ఏం చేయమంటారు? తదుపరి కమాండ్ చెప్పండి!`
+        : (isHi
+          ? `✅ "${cleanTask}" पूरा हो गया! 📖 स्क्रीन रीडर तैयार है। अब अगला काम क्या करना है? कमांड बताइए!`
+          : `✅ Completed "${cleanTask}"! 📖 Screen Reader is active and I am ready for your next instruction. What command should I perform next?`);
+
+      appendMessage('aura', msg, [], null, true);
+      speakReply(msg, lang, `Completed ${cleanTask}. What command should I perform next?`, true);
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && window.lastExternalLaunchLabel) {
+        const finishedTask = window.lastExternalLaunchLabel;
+        window.lastExternalLaunchLabel = null;
+        setTimeout(() => {
+          window.onReturnedFromExternalApp(finishedTask);
+        }, 350);
+      }
+    });
+
     let pendingWhatsAppStep = null; // 'ask_who' | 'ask_msg' | null
     let pendingWhatsAppTarget = '';
 
@@ -1647,8 +1832,8 @@
       const parts = clean.split(/\s+(?:and\s+then|then|after\s+that|also|and|mariyu|tarvata|aur|phir|మరియు|తర్వాత|और|फिर)\s+/i);
       if (parts.length <= 1) return [clean];
 
-      const actionStartRe = /^(?:open|launch|start|call|phone|dial|send|whatsapp|message|msg|sms|play|search|find|show|watch|navigate|go\s+to|directions\s+to|turn\s+on|turn\s+off|switch\s+on|switch\s+off|enable|disable|set|check|scroll|swipe|select|click|tap|volume|mute|unmute|what\s+is|who\s+is|tell\s+me|calculate|battery|time|date|torch|flashlight|hii|hi|hello)\b/i;
-      const indicActionRe = /(?:కాల్|ఫోన్|వాట్సప్|మెసేజ్|ఓపెన్|తెరువు|ప్లే|స్క్రోల్|సెలెక్ట్|బ్యాటరీ|టార్చ్|టైమ్|कॉल|व्हाट्सएप|खोलो|चलाओ|बैटरी|टॉर्च|\b(?:chey|cheyi|karo|pampu|bhejo|kholo|teruvu|entha|batao)\b)/i;
+      const actionStartRe = /^(?:open|launch|start|call|phone|dial|send|whatsapp|message|msg|sms|play|search|find|show|watch|navigate|go\s+to|directions\s+to|turn\s+on|turn\s+off|switch\s+on|switch\s+off|enable|disable|set|check|scroll|swipe|select|click|tap|read\s+screen|screen\s+reader|what\s+is\s+on\s+screen|volume|mute|unmute|what\s+is|who\s+is|tell\s+me|calculate|battery|time|date|torch|flashlight|hii|hi|hello)\b/i;
+      const indicActionRe = /(?:కాల్|ఫోన్|వాట్సప్|మెసేజ్|ఓపెన్|తెరువు|ప్లే|స్క్రోల్|సెలెక్ట్|స్క్రీన్|బ్యాటరీ|టార్చ్|టైమ్|कॉल|व्हाट्सएप|खोलो|चलाओ|स्क्रीन|बैटरी|टॉर्च|\b(?:chey|cheyi|karo|pampu|bhejo|kholo|teruvu|chaduvu|entha|batao)\b)/i;
       const inAppTaskRe = /^(?:send|message|msg|text|say|play|search|find|show|watch|open\s+reels|reels|navigate|directions\s+to|go\s+to|order|buy|hii|hi|hello)\b/i;
       const openAppOnlyRe = /^(?:open|launch|start)\s+([a-zA-Z0-9\s\u0C00-\u0C7F\u0900-\u097F]+)$/i;
 
@@ -1687,9 +1872,6 @@
           await runStandaloneApkBrain(subCmd);
           await new Promise(r => setTimeout(r, 350));
         }
-        document.getElementById('orbStatus').innerText = handsFreeMode
-          ? 'Hands-Free Listening... Speak anytime!'
-          : 'Tap the Orb & speak at your own pace';
         return;
       }
 
@@ -1697,13 +1879,11 @@
       const isCallIntent = /\b(call|phone|dial)\b/i.test(text) || /కాల్|ఫోన్|कॉल|கால்/.test(text);
       const isWaIntent = pendingWhatsAppStep !== null || /\b(whatsapp|vaatsap|whatsap)\b/i.test(text) || /వాట్సప్|వాట్సాప్|व्हाट्सएप|வாட்ஸ்அப்/.test(text);
       const isCompoundAppAction = /^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:open|launch|start)\s+.+?\s+(?:and|then|mariyu|aur|మరియు|और)\s+/i.test(text);
-      const isScrollOrSelectOrOpenApp = reelsOpen || isCompoundAppAction || /\b(open|launch|start|instagram|insta|reel|reels|shorts|scroll|swipe|select|click|tap|choose|battery|volume|mute|timer|alarm)\b/i.test(text) || /ఓపెన్|తెరువు|ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|బ్యాటరీ|चुनो|क्लिक/.test(text);
+      const isScreenReaderIntent = /\b(read\s+screen|read\s+the\s+screen|screen\s+reader|what\s+is\s+on\s+screen|what's\s+on\s+screen|whats\s+on\s+screen|execute\s+that|first\s+option|second\s+option|relax|go\s+to\s+sleep|stop\s+listening)\b/i.test(text) || /స్క్రీన్\s*చదువు|స్క్రీన్\s*రీడర్|स्क्रीन\s*पढ़ो|स्क्रीन\s*रीडर/.test(text);
+      const isScrollOrSelectOrOpenApp = reelsOpen || isCompoundAppAction || isScreenReaderIntent || /\b(open|launch|start|instagram|insta|reel|reels|shorts|scroll|swipe|select|click|tap|choose|battery|volume|mute|timer|alarm)\b/i.test(text) || /ఓపెన్|తెరువు|ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|బ్యాటరీ|चुनो|क्लिक/.test(text);
 
       if ((isCallIntent || isWaIntent || isScrollOrSelectOrOpenApp) && (window.AndroidNative || isScrollOrSelectOrOpenApp || isWaIntent || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
         await runStandaloneApkBrain(text);
-        document.getElementById('orbStatus').innerText = handsFreeMode
-          ? 'Hands-Free Listening... Speak anytime!'
-          : 'Tap the Orb & speak at your own pace';
         return;
       }
 
@@ -1731,10 +1911,6 @@
       } catch (err) {
         clearTimeout(timer);
         await runStandaloneApkBrain(text);
-      } finally {
-        document.getElementById('orbStatus').innerText = handsFreeMode
-          ? 'Hands-Free Listening... Speak anytime!'
-          : 'Tap the Orb & speak at your own pace';
       }
     }
 
@@ -1744,9 +1920,46 @@
       const lower = text.toLowerCase();
       const hasTeScript = /[\u0C00-\u0C7F]/.test(text);
       const hasHiScript = /[\u0900-\u097F]/.test(text);
-      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi|evaru|pampu|pettu)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
-      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai|kaun|bhejo)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
+      const isTe = hasTeScript || /\b(ki|chey|cheyi|entha|undi|maata|cheppu|teeyi|marchu|lo|gurinchi|evaru|pampu|pettu|chaduvu)\b/.test(lower) || document.getElementById('voiceLang').value === 'te-IN';
+      const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai|kaun|bhejo|padho)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+
+      // Explicit Stop / Relax / Sleep command (only time Aura pauses auto-listening)
+      if (/\b(relax|go to sleep|stop listening|nothing else|that's all|thats all)\b/.test(lower) || /రిలాక్స్|చాలు|ఇంకేం వద్దు|बस करो/.test(text)) {
+        pendingWhatsAppStep = null;
+        pendingWhatsAppTarget = '';
+        toggleHandsFree(false);
+        const msg = isTe
+          ? '⏸️ సరే, ఆటో-లిజనింగ్ ఆపాను. మళ్ళీ మాట్లాడాలంటే ఆర్బ్ (Orb) పై ట్యాప్ చేయండి.'
+          : (isHi ? '⏸️ ठीक है, ऑटो-लिसनिंग रोक दी है। फिर से बोलने के लिए ऑर्ब पर टैप करें।' : '⏸️ Okay, I have paused continuous listening. Tap the Orb anytime when you want me to start again!');
+        appendMessage('aura', msg, [], null, true);
+        speakReply(msg, lang, 'Okay, paused continuous listening.', true);
+        return;
+      }
+
+      // Screen Reader command ("read screen", "screen reader", "what is on screen", "స్క్రీన్ చదువు")
+      if (/\b(read\s+screen|read\s+the\s+screen|screen\s+reader|what\s+is\s+on\s+screen|what's\s+on\s+screen|whats\s+on\s+screen|what\s+is\s+on\s+my\s+screen)\b/.test(lower) || /స్క్రీన్\s*చదువు|స్క్రీన్\s*రీడర్|స్క్రీన్\s*పై\s*ఏముంది|स्क्रीन\s*पढ़ो|स्क्रीन\s*रीडर/.test(text)) {
+        window.triggerScreenReaderAndContinue();
+        return;
+      }
+
+      // Contextual Screen Reader Follow-up ("execute that", "first option", "second option")
+      if (/\b(execute\s+that|do\s+that|open\s+that|first\s+option|option\s+1|second\s+option|option\s+2|third\s+option|option\s+3)\b/.test(lower)) {
+        if (!window.lastScreenReaderActions || window.lastScreenReaderActions.length === 0) {
+          window.readCurrentScreenDom();
+        }
+        const idx = /\b(second|2)\b/.test(lower) ? 1 : (/\b(third|3)\b/.test(lower) ? 2 : 0);
+        const chosen = (window.lastScreenReaderActions || [])[idx] || (window.lastScreenReaderActions || [])[0];
+        if (chosen && chosen.element) {
+          chosen.element.click();
+          const msg = isTe
+            ? `⚡ స్క్రీన్ పై ఉన్న "${chosen.label}" ఆప్షన్ ఎగ్జిక్యూట్ చేశాను.`
+            : `⚡ Executed screen action: "${chosen.label}".`;
+          appendMessage('aura', msg);
+          speakReply(msg, lang, `Executed ${chosen.label}`);
+          return;
+        }
+      }
 
       if (/\b(cancel|stop|nevermind)\b/.test(lower) || /వద్దు|ఆపు/.test(text)) {
         pendingWhatsAppStep = null;

@@ -36,6 +36,7 @@ import org.json.JSONObject
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private var lastExternalTaskDescription: String? = null
 
     private val requiredPermissions = arrayOf(
         Manifest.permission.RECORD_AUDIO,
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
                         return true
                     }
                     try {
+                        lastExternalTaskDescription = url
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                         startActivity(intent)
                         return true
@@ -104,6 +106,21 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(webView)
         webView.loadUrl("file:///android_asset/index.html")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val prevTask = lastExternalTaskDescription
+        if (!prevTask.isNullOrBlank() && ::webView.isInitialized) {
+            lastExternalTaskDescription = null
+            val safeTask = prevTask.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+            webView.postDelayed({
+                webView.evaluateJavascript(
+                    "if (window.onReturnedFromExternalApp) window.onReturnedFromExternalApp('$safeTask');",
+                    null
+                )
+            }, 400)
+        }
     }
 
     fun requestRequiredPermissions() {
@@ -220,6 +237,7 @@ class MainActivity : AppCompatActivity() {
     fun placeDirectCall(phoneNumber: String) {
         val clean = phoneNumber.trim()
         if (clean.isEmpty()) return
+        lastExternalTaskDescription = "Phone Call ($clean)"
         val uri = Uri.parse("tel:$clean")
         try {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
@@ -247,6 +265,7 @@ class MainActivity : AppCompatActivity() {
         val matched = lookupRealContact(trimmed)
         if (matched != null) {
             placeDirectCall(matched.second)
+            lastExternalTaskDescription = "Phone Call to ${matched.first}"
             return "FOUND:${matched.first}|${matched.second}"
         }
 
@@ -260,6 +279,7 @@ class MainActivity : AppCompatActivity() {
 
         // Open dialer without dialing a fake number
         try {
+            lastExternalTaskDescription = "Phone Dialer"
             startActivity(Intent(Intent.ACTION_DIAL))
         } catch (e: Exception) {}
         val displayQuery = sampleDemoNumbers[trimmed] ?: trimmed
@@ -275,6 +295,17 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 ""
             }
+        }
+
+        @JavascriptInterface
+        fun readScreenSummary(): String {
+            val bat = getRealBatteryStatus()
+            val batText = if (bat.contains("|")) {
+                val parts = bat.split("|")
+                "Battery ${parts[0]}%" + if (parts.getOrNull(1) == "true") " (Charging)" else ""
+            } else ""
+            val prev = lastExternalTaskDescription ?: "Aura Assistant Screen"
+            return listOf(prev, batText).filter { it.isNotBlank() }.joinToString(" • ")
         }
 
         @JavascriptInterface
@@ -345,12 +376,14 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun sendWhatsApp(nameOrNumber: String, message: String): String {
             val trimmed = nameOrNumber.trim()
+            lastExternalTaskDescription = "WhatsApp Message"
             if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
                 requestRequiredPermissions()
             }
 
             val matched = if (trimmed.isNotEmpty()) lookupRealContact(trimmed) else null
             if (matched != null) {
+                lastExternalTaskDescription = "WhatsApp to ${matched.first}"
                 val digits = matched.second.replace(Regex("[^0-9]"), "")
                 val waPhone = if (digits.length == 10) "91$digits" else digits
                 val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$waPhone&text=${Uri.encode(message)}")
@@ -405,6 +438,7 @@ class MainActivity : AppCompatActivity() {
         fun sendSms(phoneNumber: String, message: String) {
             val matched = lookupRealContact(phoneNumber)
             val targetNum = matched?.second ?: phoneNumber
+            lastExternalTaskDescription = "SMS to ${matched?.first ?: phoneNumber}"
             val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$targetNum")).apply {
                 putExtra("sms_body", message)
             }
@@ -498,6 +532,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun openSystemSettings(section: String) {
             val s = section.trim().lowercase()
+            lastExternalTaskDescription = "System Settings ($section)"
             val actionStr = when {
                 "wifi" in s || "wi-fi" in s || "internet" in s -> Settings.ACTION_WIFI_SETTINGS
                 "bluetooth" in s -> Settings.ACTION_BLUETOOTH_SETTINGS
@@ -523,6 +558,7 @@ class MainActivity : AppCompatActivity() {
                 openApp("youtube")
                 return
             }
+            lastExternalTaskDescription = "YouTube ($cleanQ)"
             try {
                 val ytIntent = Intent(Intent.ACTION_SEARCH).apply {
                     setPackage("com.google.android.youtube")
@@ -537,6 +573,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun navigateMaps(destination: String) {
+            lastExternalTaskDescription = "Google Maps ($destination)"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=${Uri.encode(destination)}"))
             try {
                 startActivity(intent)
@@ -570,6 +607,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun openExternalReels() {
+            lastExternalTaskDescription = "Instagram Reels"
             try {
                 val reelsIntent = Intent(Intent.ACTION_VIEW, Uri.parse("instagram://reels_home")).apply {
                     setPackage("com.instagram.android")
@@ -604,6 +642,7 @@ class MainActivity : AppCompatActivity() {
                 openApp(appName)
                 return
             }
+            lastExternalTaskDescription = "$appName ($q)"
             when {
                 "youtube" in key || "yt" in key || "యూట్యూబ్" in key || "యుట్యూబ్" in key -> {
                     openYouTube(q)
@@ -690,6 +729,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun openApp(appName: String) {
             val key = appName.trim().lowercase()
+            lastExternalTaskDescription = appName.trim()
 
             // Always open REAL Instagram Reels or YouTube Shorts (never a mock modal!)
             if ("reel" in key || "రీల్" in key || "रील" in key) {

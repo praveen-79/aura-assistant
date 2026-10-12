@@ -479,3 +479,34 @@ def test_real_instagram_and_multi_input_compound_commands(tmp_path):
     tool_names2 = [t["name"] for t in chained2["executed_tools"]]
     assert "open_android_app" in tool_names2
     assert "control_device_setting" in tool_names2
+
+
+def test_screen_reader_and_continuous_next_task_loop(tmp_path: Path):
+    cm = ContactManager(tmp_path / "contacts.json")
+    engine = AndroidAutomationEngine(cm)
+    agent = AuraGeminiAgent(engine, api_key="")
+
+    # 1. Screen Reader command ("read screen" / "what is on screen")
+    sr_res = agent.chat_with_tools("read screen")
+    assert any(t["name"] == "read_screen_elements" for t in sr_res["executed_tools"])
+    assert sr_res.get("ask_next_task") is True
+    assert "what command should i perform next" in sr_res["reply"].lower()
+
+    # 2. Telugu Screen Reader command ("స్క్రీన్ చదువు")
+    sr_te = agent.chat_with_tools("స్క్రీన్ చదువు", language_hint="te-IN")
+    assert any(t["name"] == "read_screen_elements" for t in sr_te["executed_tools"])
+    assert sr_te.get("ask_next_task") is True
+    assert "తర్వాత ఏం చేయమంటారు" in sr_te["reply"]
+
+    # 3. Any completed task must ask for the next command and never relax
+    done_res = agent.chat_with_tools("open instagram")
+    assert done_res.get("ask_next_task") is True
+    assert "what command should i perform next" in done_res["reply"].lower()
+
+    # 4. Chained command with Screen Reader ("scroll down and read screen")
+    chain_sr = agent.chat_with_tools("scroll down and read screen")
+    names = [t["name"] for t in chain_sr["executed_tools"]]
+    assert "scroll_screen" in names
+    assert "read_screen_elements" in names
+    assert chain_sr.get("ask_next_task") is True
+
