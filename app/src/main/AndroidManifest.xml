@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <!-- Android 11+ Package Visibility for launching WhatsApp, YouTube, Maps, Dialer & Installed Apps -->
     <queries>
@@ -25,6 +28,9 @@
         <intent>
             <action android:name="android.intent.action.DIAL" />
             <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />
@@ -47,6 +53,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -62,6 +70,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Display Over Other Apps Floating Overlay & Continuous Voice Service -->
+        <service
+            android:name=".AuraFloatingOverlayService"
+            android:exported="false"
+            android:label="Aura Floating Screen Reader &amp; Voice Overlay"
+            android:foregroundServiceType="microphone" />
 
         <!-- System VoiceInteractionService so Android lists Aura in Default Digital Assistant App -->
         <service

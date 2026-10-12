@@ -2,6 +2,7 @@ package com.aura.assistant
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.PictureInPictureParams
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,6 +15,7 @@ import android.os.Bundle
 import android.provider.AlarmClock
 import android.provider.ContactsContract
 import android.provider.Settings
+import android.util.Rational
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
@@ -31,9 +33,13 @@ import org.json.JSONObject
  * Native Android Activity & Default Digital Assistant (`ASSIST` Intent) Host.
  * Connects WebView UI with real Android Contacts (`ContactsContract`), runtime permissions,
  * direct phone calling, installed app launching, RoleManager Assistant registration,
- * and `AuraAccessibilityService`.
+ * and `AuraFloatingOverlayService` ("Display Over Other Apps" continuous screen-reader & voice).
  */
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        var instance: MainActivity? = null
+    }
 
     private lateinit var webView: WebView
     private var lastExternalTaskDescription: String? = null
@@ -55,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this
 
         requestRequiredPermissions()
 
@@ -68,7 +75,7 @@ class MainActivity : AppCompatActivity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url?.toString() ?: return false
-                    if (url.startsWith("file://") || url.contains("localhost") || url.contains(":8000")) {
+                    if (url.startsWith("file://") || url.contains("localhost") || url.contains(":8000") || url.contains(".lhr.life")) {
                         return false
                     }
                     if (url.startsWith("tel:")) {
@@ -77,7 +84,7 @@ class MainActivity : AppCompatActivity() {
                         return true
                     }
                     try {
-                        lastExternalTaskDescription = url
+                        notifyExternalAppLaunched(url)
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                         startActivity(intent)
                         return true
@@ -106,6 +113,36 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(webView)
         webView.loadUrl("file:///android_asset/index.html")
+
+        // If Display Over Other Apps permission is already granted, start the Floating Overlay Service immediately
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)) {
+            startFloatingOverlayService("Aura Assistant", null)
+        }
+    }
+
+    override fun onDestroy() {
+        if (instance === this) {
+            instance = null
+        }
+        super.onDestroy()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val activeTarget = lastExternalTaskDescription ?: AuraFloatingOverlayService.currentActiveApp
+        // Start/Update Floating Overlay Service so Aura keeps listening while other apps are in foreground
+        startFloatingOverlayService(activeTarget, null)
+
+        // If Display Over Other Apps is not granted yet, automatically enter Picture-in-Picture (PiP) mode
+        // so Aura still floats over Instagram/WhatsApp/YouTube!
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !Settings.canDrawOverlays(this)) {
+            try {
+                val pipParams = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+                enterPictureInPictureMode(pipParams)
+            } catch (e: Exception) {}
+        }
     }
 
     override fun onResume() {
@@ -121,6 +158,190 @@ class MainActivity : AppCompatActivity() {
                 )
             }, 400)
         }
+    }
+
+    fun startFloatingOverlayService(appName: String, speakPrompt: String? = null) {
+        try {
+            val svcIntent = Intent(this, AuraFloatingOverlayService::class.java).apply {
+                action = AuraFloatingOverlayService.ACTION_UPDATE_APP
+                putExtra(AuraFloatingOverlayService.EXTRA_APP_NAME, appName)
+                if (!speakPrompt.isNullOrBlank()) {
+                    putExtra(AuraFloatingOverlayService.EXTRA_SPEAK_TEXT, speakPrompt)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(svcIntent)
+            } else {
+                startService(svcIntent)
+            }
+        } catch (e: Exception) {}
+    }
+
+    fun notifyExternalAppLaunched(appName: String, spokenAnnouncement: String? = null) {
+        lastExternalTaskDescription = appName
+        AuraFloatingOverlayService.currentActiveApp = appName
+        val prompt = spokenAnnouncement
+            ?: "Opened $appName. Screen Reader active on $appName. What command should I perform next?"
+        startFloatingOverlayService(appName, prompt)
+    }
+
+    /**
+     * Executes voice commands captured by `AuraFloatingOverlayService` while another app
+     * (Instagram, WhatsApp, YouTube, Maps, etc.) is currently open on screen!
+     */
+    fun executeVoiceCommandFromOverlay(spokenRaw: String, activeApp: String): String {
+        val text = spokenRaw.trim()
+        val lower = text.lowercase()
+        val activeKey = activeApp.lowercase()
+
+        // Sync with WebView chat log as well
+        runOnUiThread {
+            if (::webView.isInitialized) {
+                val safeSpoken = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+                val safeApp = activeApp.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+                webView.evaluateJavascript(
+                    "if (window.onOverlayVoiceCommand) window.onOverlayVoiceCommand('$safeSpoken', '$safeApp');",
+                    null
+                )
+            }
+        }
+
+        val bridge = AndroidNativeBridge()
+
+        // 1. Contextual commands when Instagram is on screen (or when command mentions Instagram/Reels)
+        if ("insta" in activeKey || "insta" in lower || "reel" in lower || "రీల్" in text || "रील" in text) {
+            if ("reel" in lower || "next" in lower || "scroll" in lower || "రీల్" in text) {
+                bridge.openExternalReels()
+                return "Opened Instagram Reels."
+            }
+            if ("story" in lower || "camera" in lower) {
+                try {
+                    val stIntent = Intent(Intent.ACTION_VIEW, Uri.parse("instagram://story-camera")).apply {
+                        setPackage("com.instagram.android")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(stIntent)
+                    return "Opened Instagram Story Camera."
+                } catch (e: Exception) {}
+            }
+            if ("message" in lower || "dm" in lower || "inbox" in lower || "chat" in lower) {
+                try {
+                    val dmIntent = Intent(Intent.ACTION_VIEW, Uri.parse("instagram://direct-inbox")).apply {
+                        setPackage("com.instagram.android")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(dmIntent)
+                    return "Opened Instagram Direct Messages."
+                } catch (e: Exception) {}
+            }
+            if ("search" in lower || "find" in lower || "show" in lower || "profile" in lower) {
+                val q = text.replace(Regex("(?i)^(hey aura|aura|please|open|instagram|insta|and|search for|search|find|show|profile)\\s+"), "").trim()
+                if (q.isNotEmpty()) {
+                    bridge.openAppWithQuery("instagram", q)
+                    return "Searching Instagram for $q."
+                }
+            }
+            if ("open" in lower && ("insta" in lower)) {
+                bridge.openApp("instagram")
+                return "Opened Instagram."
+            }
+        }
+
+        // 2. Contextual commands when WhatsApp is on screen (or when command mentions WhatsApp/message)
+        if ("whatsapp" in lower || "vaatsap" in lower || "వాట్సప్" in text || ("whatsapp" in activeKey && ("send" in lower || "message" in lower || "msg" in lower || "hi" in lower || "hello" in lower))) {
+            val matched = lookupRealContact(text)
+            if (matched != null) {
+                val msgBody = text
+                    .replace(Regex("(?i)\\b(${Regex.escape(matched.first)}|open|whatsapp|vaatsap|and|send|message|msg|to|in|on|saying|that|ki|ko)\\b"), " ")
+                    .replace(Regex("\\s+"), " ")
+                    .trim()
+                    .ifEmpty { "Hello" }
+                bridge.sendWhatsApp(matched.first, msgBody)
+                return "Sending WhatsApp message '$msgBody' to ${matched.first}."
+            }
+            bridge.openApp("whatsapp")
+            return "Opened WhatsApp."
+        }
+
+        // 3. Contextual commands when YouTube is on screen (or when command mentions YouTube/play/songs)
+        if ("youtube" in lower || "play " in lower || "song" in lower || ("youtube" in activeKey && ("search" in lower || "play" in lower || "short" in lower))) {
+            if ("short" in lower) {
+                bridge.openApp("youtube shorts")
+                return "Opened YouTube Shorts."
+            }
+            val q = text.replace(Regex("(?i)\\b(hey aura|aura|please|open|youtube|and|play|search for|search|find|watch|on youtube|in youtube)\\b"), " ")
+                .replace(Regex("\\s+"), " ")
+                .trim()
+            bridge.openYouTube(q.ifEmpty { "Trending songs" })
+            return "Playing ${q.ifEmpty { "Trending songs" }} on YouTube."
+        }
+
+        // 4. Contextual commands when Maps is on screen (or when command mentions navigate/directions)
+        if ("navigate" in lower || "map" in lower || "direction" in lower || ("map" in activeKey && ("go to" in lower || "search" in lower))) {
+            val dest = text.replace(Regex("(?i)\\b(hey aura|aura|please|open|google|maps|map|and|navigate to|navigate|directions to|go to|search)\\b"), " ")
+                .replace(Regex("\\s+"), " ")
+                .trim()
+                .ifEmpty { "Home" }
+            bridge.navigateMaps(dest)
+            return "Navigating to $dest in Google Maps."
+        }
+
+        // 5. Phone Calls from any screen
+        if ("call " in lower || "dial " in lower || "phone " in lower || "కాల్" in text || "कॉल" in text) {
+            val res = handleSmartCall(text)
+            return if (res.startsWith("FOUND:")) {
+                val cName = res.removePrefix("FOUND:").split("|").firstOrNull() ?: text
+                "Calling $cName from your phone contacts."
+            } else {
+                "Opening phone dialer for $text."
+            }
+        }
+
+        // 6. Hardware controls (Flashlight, Volume, Battery) while inside any other app
+        if ("torch" in lower || "flashlight" in lower || "light" in lower) {
+            val on = !lower.contains("off")
+            bridge.setTorch(on)
+            return "Turned flashlight ${if (on) "ON" else "OFF"}."
+        }
+        if ("volume" in lower || "louder" in lower || "quieter" in lower || "mute" in lower || "unmute" in lower) {
+            val act = when {
+                "down" in lower || "quieter" in lower || "lower" in lower -> "down"
+                "mute" in lower -> "mute"
+                "unmute" in lower -> "unmute"
+                else -> "up"
+            }
+            val pct = bridge.adjustVolume(act)
+            return "Adjusted volume $act ($pct)."
+        }
+        if ("battery" in lower) {
+            val bat = bridge.getRealBatteryStatus()
+            val lvl = bat.split("|").firstOrNull() ?: ""
+            return if (lvl.isNotEmpty()) "Your phone battery is at $lvl%." else "Checked phone battery."
+        }
+
+        // 7. Open any other app from the current app
+        val openMatch = Regex("(?i)^(?:hey aura\\s+|aura\\s+|please\\s+)?(?:open|launch|start)\\s+(.+)$").find(text)
+        if (openMatch != null) {
+            val targetApp = openMatch.groupValues[1].trim()
+            bridge.openApp(targetApp)
+            return "Opened $targetApp."
+        }
+
+        // 8. If currently inside an app and user spoke a bare query (e.g., "Prabhas" while in Instagram or YouTube)
+        if ("insta" in activeKey) {
+            bridge.openAppWithQuery("instagram", text)
+            return "Searching Instagram for $text."
+        }
+        if ("youtube" in activeKey) {
+            bridge.openYouTube(text)
+            return "Playing $text on YouTube."
+        }
+        if ("map" in activeKey) {
+            bridge.navigateMaps(text)
+            return "Navigating to $text in Google Maps."
+        }
+
+        return "Executed '$text' over $activeApp."
     }
 
     fun requestRequiredPermissions() {
@@ -304,8 +525,51 @@ class MainActivity : AppCompatActivity() {
                 val parts = bat.split("|")
                 "Battery ${parts[0]}%" + if (parts.getOrNull(1) == "true") " (Charging)" else ""
             } else ""
-            val prev = lastExternalTaskDescription ?: "Aura Assistant Screen"
+            val prev = lastExternalTaskDescription ?: AuraFloatingOverlayService.currentActiveApp
             return listOf(prev, batText).filter { it.isNotBlank() }.joinToString(" • ")
+        }
+
+        @JavascriptInterface
+        fun canDisplayOverOtherApps(): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Settings.canDrawOverlays(this@MainActivity)
+            } else {
+                true
+            }
+        }
+
+        @JavascriptInterface
+        fun enableDisplayOverOtherApps(): Boolean {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this@MainActivity)) {
+                runOnUiThread {
+                    try {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:$packageName")
+                        )
+                        startActivityForResult(intent, 303)
+                    } catch (e: Exception) {
+                        try {
+                            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                        } catch (ignored: Exception) {}
+                    }
+                }
+                return false
+            }
+            runOnUiThread {
+                startFloatingOverlayService(
+                    lastExternalTaskDescription ?: "Aura Assistant",
+                    "Floating Screen Reader & Voice Overlay is now active over all apps! What command should I perform next?"
+                )
+            }
+            return true
+        }
+
+        @JavascriptInterface
+        fun startFloatingOverlay(appName: String) {
+            runOnUiThread {
+                notifyExternalAppLaunched(appName.ifBlank { "Aura Assistant" })
+            }
         }
 
         @JavascriptInterface
@@ -376,14 +640,14 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun sendWhatsApp(nameOrNumber: String, message: String): String {
             val trimmed = nameOrNumber.trim()
-            lastExternalTaskDescription = "WhatsApp Message"
+            notifyExternalAppLaunched("WhatsApp")
             if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
                 requestRequiredPermissions()
             }
 
             val matched = if (trimmed.isNotEmpty()) lookupRealContact(trimmed) else null
             if (matched != null) {
-                lastExternalTaskDescription = "WhatsApp to ${matched.first}"
+                notifyExternalAppLaunched("WhatsApp (${matched.first})")
                 val digits = matched.second.replace(Regex("[^0-9]"), "")
                 val waPhone = if (digits.length == 10) "91$digits" else digits
                 val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$waPhone&text=${Uri.encode(message)}")
@@ -438,7 +702,7 @@ class MainActivity : AppCompatActivity() {
         fun sendSms(phoneNumber: String, message: String) {
             val matched = lookupRealContact(phoneNumber)
             val targetNum = matched?.second ?: phoneNumber
-            lastExternalTaskDescription = "SMS to ${matched?.first ?: phoneNumber}"
+            notifyExternalAppLaunched("SMS (${matched?.first ?: phoneNumber})")
             val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$targetNum")).apply {
                 putExtra("sms_body", message)
             }
@@ -532,7 +796,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun openSystemSettings(section: String) {
             val s = section.trim().lowercase()
-            lastExternalTaskDescription = "System Settings ($section)"
+            notifyExternalAppLaunched("System Settings ($section)")
             val actionStr = when {
                 "wifi" in s || "wi-fi" in s || "internet" in s -> Settings.ACTION_WIFI_SETTINGS
                 "bluetooth" in s -> Settings.ACTION_BLUETOOTH_SETTINGS
@@ -558,7 +822,7 @@ class MainActivity : AppCompatActivity() {
                 openApp("youtube")
                 return
             }
-            lastExternalTaskDescription = "YouTube ($cleanQ)"
+            notifyExternalAppLaunched("YouTube ($cleanQ)")
             try {
                 val ytIntent = Intent(Intent.ACTION_SEARCH).apply {
                     setPackage("com.google.android.youtube")
@@ -573,7 +837,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun navigateMaps(destination: String) {
-            lastExternalTaskDescription = "Google Maps ($destination)"
+            notifyExternalAppLaunched("Google Maps ($destination)")
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=${Uri.encode(destination)}"))
             try {
                 startActivity(intent)
@@ -607,7 +871,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun openExternalReels() {
-            lastExternalTaskDescription = "Instagram Reels"
+            notifyExternalAppLaunched("Instagram Reels")
             try {
                 val reelsIntent = Intent(Intent.ACTION_VIEW, Uri.parse("instagram://reels_home")).apply {
                     setPackage("com.instagram.android")
@@ -642,7 +906,7 @@ class MainActivity : AppCompatActivity() {
                 openApp(appName)
                 return
             }
-            lastExternalTaskDescription = "$appName ($q)"
+            notifyExternalAppLaunched("$appName ($q)")
             when {
                 "youtube" in key || "yt" in key || "యూట్యూబ్" in key || "యుట్యూబ్" in key -> {
                     openYouTube(q)
@@ -729,7 +993,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun openApp(appName: String) {
             val key = appName.trim().lowercase()
-            lastExternalTaskDescription = appName.trim()
+            notifyExternalAppLaunched(appName.trim())
 
             // Always open REAL Instagram Reels or YouTube Shorts (never a mock modal!)
             if ("reel" in key || "రీల్" in key || "रील" in key) {

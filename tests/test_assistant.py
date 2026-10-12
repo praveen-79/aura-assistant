@@ -510,3 +510,18 @@ def test_screen_reader_and_continuous_next_task_loop(tmp_path: Path):
     assert "read_screen_elements" in names
     assert chain_sr.get("ask_next_task") is True
 
+    # 5. Cross-App Active Screen Context: after opening Instagram, Screen Reader & contextual commands target Instagram!
+    agent.chat_with_tools("open instagram")
+    assert agent.active_foreground_app.lower() == "instagram"
+
+    sr_insta = agent.chat_with_tools("read screen")
+    assert "instagram" in sr_insta["reply"].lower()
+
+    in_app_cmd = agent.chat_with_tools("search prabhas")
+    assert any(
+        t["name"] == "open_app_with_query" and t["args"]["query"] == "prabhas"
+        for t in in_app_cmd["executed_tools"]
+    )
+    assert in_app_cmd.get("ask_next_task") is True
+
+

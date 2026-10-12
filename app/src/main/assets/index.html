@@ -348,15 +348,20 @@
           <option value="1400">⏱️ Word Gap: 1.4s (Fast)</option>
         </select>
         <button class="icon-btn active" id="wakeWordBtn" onclick="toggleHandsFree()">🎙️ Auto-Continue: ON</button>
+        <button class="icon-btn" onclick="window.enableFloatingDisplayOverApps()" style="border-color:#00f5d4;color:#00f5d4">🪟 Display Over Other Apps</button>
         <button class="icon-btn" onclick="window.triggerScreenReaderAndContinue()" style="border-color:#ffd166;color:#ffd166">📖 Screen Reader & Next Task</button>
         <button class="icon-btn" id="liveStreamBtn" onclick="toggleGeminiLiveStream()">⚡ Live WS: OFF</button>
         <button class="icon-btn" onclick="syncRealPhoneContacts()" style="border-color:var(--green);color:var(--green)">🛡️ Permissions & Real Contacts</button>
         <button class="icon-btn" onclick="setAsDefaultAssistant()" style="border-color:var(--cyan);color:var(--cyan)">🤖 Set Default Assistant</button>
       </div>
+      <div id="activeScreenBadge" style="margin-top:8px;font-size:0.78rem;padding:4px 12px;border-radius:999px;background:rgba(0,245,212,0.12);border:1px solid rgba(0,245,212,0.3);color:#00f5d4;display:inline-block">
+        📱 Present Screen Context: <b>Aura Assistant</b> (Floating Screen Reader Ready)
+      </div>
     </section>
 
     <div class="chips">
-      <button class="chip" onclick="window.triggerScreenReaderAndContinue()" style="border-color:#ffd166;color:#ffd166">📖 Read Screen & Ask Next Command</button>
+      <button class="chip" onclick="window.enableFloatingDisplayOverApps()" style="border-color:#00f5d4;color:#00f5d4">🪟 Display Over Other Apps (Floating Voice)</button>
+      <button class="chip" onclick="window.triggerScreenReaderAndContinue()" style="border-color:#ffd166;color:#ffd166">📖 Read Present Screen & Ask Next Command</button>
       <button class="chip" onclick="syncRealPhoneContacts()">🛡️ Grant Permissions & Sync Phone Contacts</button>
       <button class="chip" onclick="sendQuick('Open Instagram')" style="border-color:#ff007f;color:#ff85c1">📸 Open Instagram</button>
       <button class="chip" onclick="sendQuick('Open Instagram and open Reels')" style="border-color:#ff007f;color:#ff85c1">🎬 Open Instagram Reels</button>
@@ -375,12 +380,12 @@
     </div>
 
     <div class="panel" id="phonePanel">
-      <h4 style="font-size:0.88rem">📱 Android Permissions, Default AI Assistant & APK Setup</h4>
+      <h4 style="font-size:0.88rem">📱 Android Permissions, Floating Overlay & Default AI Assistant</h4>
       <div class="contact-item" style="flex-direction:column;align-items:flex-start;gap:8px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <button class="action-btn" onclick="syncRealPhoneContacts()" style="padding:6px 12px;font-size:0.78rem">🛡️ 1. Grant Mic, Contacts & Call Permissions</button>
-          <button class="action-btn" onclick="setAsDefaultAssistant()" style="padding:6px 12px;font-size:0.78rem">🤖 2. Set as Default Digital Assistant</button>
-          <button class="action-btn" onclick="enableAccessibilityService()" style="padding:6px 12px;font-size:0.78rem">♿ 3. Enable Hands-Free Accessibility</button>
+          <button class="action-btn" onclick="window.enableFloatingDisplayOverApps()" style="padding:6px 12px;font-size:0.78rem;border-color:#00f5d4;color:#00f5d4">🪟 2. Enable Display Over Other Apps (Floating Screen Reader)</button>
+          <button class="action-btn" onclick="setAsDefaultAssistant()" style="padding:6px 12px;font-size:0.78rem">🤖 3. Set as Default Digital Assistant</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span>📦 <b>Native Android APK (v2.1):</b></span>
@@ -1538,6 +1543,7 @@
         if (toolName === 'send_whatsapp_message') {
           const target = args?.recipient_name_or_number || args?.contact_name_or_number || result?.recipient || result?.contact_name || '';
           const msg = args?.message_text || args?.message || result?.message_text || result?.message || 'Hello';
+          window.setActiveAppContext('WhatsApp');
           if (window.AndroidNative && window.AndroidNative.sendWhatsApp) {
             window.AndroidNative.sendWhatsApp(target, msg);
           } else {
@@ -1549,6 +1555,12 @@
             }
           }
           return;
+        }
+        if (toolName === 'play_youtube_media') window.setActiveAppContext('YouTube');
+        else if (toolName === 'navigate_to_location') window.setActiveAppContext('Google Maps');
+        else if (toolName === 'open_app_with_query' || toolName === 'open_android_app') {
+          const aName = args?.app_name || (result && result.app_name) || '';
+          if (aName) window.setActiveAppContext(aName.charAt(0).toUpperCase() + aName.slice(1));
         }
         if (!window.AndroidNative) return;
         if (toolName === 'make_phone_call' && (args?.contact_name_or_number || result?.contact_name || result?.phone_number)) {
@@ -1588,6 +1600,94 @@
     let currentTtsAudio = null;
     window.lastScreenReaderActions = [];
     window.lastExternalLaunchLabel = null;
+    window.currentActiveAppContext = 'Aura Assistant';
+
+    window.setActiveAppContext = function(appName) {
+      const cleanApp = String(appName || 'Aura Assistant').replace(/^Open\s+/i, '').trim() || 'Aura Assistant';
+      window.currentActiveAppContext = cleanApp;
+      const badge = document.getElementById('activeScreenBadge');
+      if (badge) {
+        const isExt = cleanApp.toLowerCase() !== 'aura assistant';
+        badge.innerHTML = isExt
+          ? `📱 Present Screen Context: <b>${cleanApp}</b> &nbsp;•&nbsp; 🪟 Floating Overlay Active (Say commands for ${cleanApp}!)`
+          : `📱 Present Screen Context: <b>Aura Assistant</b>`;
+      }
+      if (window.AndroidNative && window.AndroidNative.startFloatingOverlay && cleanApp.toLowerCase() !== 'aura assistant') {
+        try { window.AndroidNative.startFloatingOverlay(cleanApp); } catch (e) {}
+      }
+    };
+
+    window.enableFloatingDisplayOverApps = async function() {
+      const selLang = document.getElementById('voiceLang')?.value || 'en-IN';
+      const isTe = selLang === 'te-IN';
+      const isHi = selLang === 'hi-IN';
+      const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+      const btn = document.getElementById('floatingOverlayBtn');
+
+      // 1. Native Android APK: Check/Request SYSTEM_ALERT_WINDOW & start AuraFloatingOverlayService
+      if (window.AndroidNative && window.AndroidNative.enableDisplayOverOtherApps) {
+        try {
+          const alreadyGranted = window.AndroidNative.enableDisplayOverOtherApps();
+          if (alreadyGranted) {
+            if (btn) btn.innerText = '🪟 Overlay: ON ✅';
+            const msg = isTe
+              ? '🪟 ఫ్లోటింగ్ ఓవర్‌లే (Display Over Other Apps) యాక్టివ్‌గా ఉంది! మీరు Instagram, WhatsApp, YouTube వంటి ఏ యాప్ ఓపెన్ చేసినా నేను స్క్రీన్ పైనే ఉండి మీ వాయిస్ కమాండ్స్ తీసుకుంటాను. తర్వాత ఏం చేయమంటారు?'
+              : '🪟 Floating Overlay is now ACTIVE on top of your screen! When you open Instagram, WhatsApp, YouTube, or Maps, my floating voice & screen-reader pill stays on top to take commands for that app. What command should I perform next?';
+            appendMessage('aura', msg, [], null, true);
+            speakReply(msg, lang, 'Floating Overlay is active on top of other apps. What command should I perform next?', true);
+          } else {
+            const msg = isTe
+              ? '🪟 ఆండ్రాయిడ్ "Display over other apps" సెట్టింగ్స్ తెరుస్తున్నాను. దయచేసి Aura Assistant ని ON చేయండి — అప్పుడు ఇతర యాప్స్ వాడుతున్నప్పుడు కూడా నేను స్క్రీన్ పై ఉండి మీ కమాండ్స్ తీసుకుంటాను!'
+              : '🪟 Opening Android "Display over other apps" permission settings. Please toggle ON "Aura Assistant" so I can float over Instagram, WhatsApp, and YouTube and take voice commands while you use them!';
+            appendMessage('aura', msg, [], null, true);
+            speakReply(msg, lang, 'Please toggle on Display over other apps for Aura Assistant.', true);
+          }
+          return;
+        } catch (e) {}
+      }
+
+      // 2. Web Browser Fallback: Document Picture-in-Picture Always-on-Top Floating Controller
+      if ('documentPictureInPicture' in window) {
+        try {
+          const pipWin = await window.documentPictureInPicture.requestWindow({ width: 360, height: 150 });
+          pipWin.document.body.style.cssText = 'margin:0;padding:12px;background:#0d1326;color:#f8fafc;font-family:sans-serif;display:flex;flex-direction:column;justify-content:space-between;border:2px solid #00f5d4;box-sizing:border-box;';
+          pipWin.document.body.innerHTML = `
+            <div style="font-size:12px;color:#00f5d4;font-weight:700;" id="pipAppStatus">🪟 Aura Overlay • 📱 Active: ${window.currentActiveAppContext}</div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button id="pipMicBtn" style="flex:1;padding:8px;border-radius:10px;border:none;background:#00f5d4;color:#06101e;font-weight:700;cursor:pointer;">🎙️ Speak Command</button>
+              <button id="pipReadBtn" style="flex:1;padding:8px;border-radius:10px;border:1px solid #00f5d4;background:#1e293b;color:#00f5d4;font-weight:700;cursor:pointer;">📖 Read Screen</button>
+            </div>
+            <input id="pipInput" placeholder="Type command for active app..." style="margin-top:8px;padding:6px 10px;border-radius:8px;border:1px solid #334155;background:#090d16;color:#fff;font-size:12px;width:100%;box-sizing:border-box;" />
+          `;
+          pipWin.document.getElementById('pipMicBtn').onclick = () => window.handleOrbTap();
+          pipWin.document.getElementById('pipReadBtn').onclick = () => window.triggerScreenReaderAndContinue();
+          pipWin.document.getElementById('pipInput').onkeydown = (e) => {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+              window.sendCommand(e.target.value.trim());
+              e.target.value = '';
+            }
+          };
+          if (btn) btn.innerText = '🪟 Overlay: ON ✅';
+          const msg = '🪟 Always-on-Top Floating Overlay Window opened! You can now switch to any app or window and give voice or screen-reader commands directly.';
+          appendMessage('aura', msg);
+          speakReply(msg, lang);
+          return;
+        } catch (e) {}
+      }
+
+      if (btn) btn.innerText = '🪟 Overlay: ON ✅';
+      toggleHandsFree(true);
+      const msg = isTe
+        ? '🪟 కంటిన్యూయస్ ఓవర్‌లే వాయిస్ మోడ్ ఆన్ చేయబడింది! ఆండ్రాయిడ్ యాప్స్‌పై ఫ్లోటింగ్ బబుల్ కోసం Aura APK ఇన్‌స్టాల్ చేసి "Display Over Other Apps" ఆన్ చేయండి.'
+        : '🪟 Continuous Cross-App Voice & Screen Reader Mode enabled! In the Android APK, this displays a live floating pill directly over Instagram, WhatsApp, YouTube, and Maps.';
+      appendMessage('aura', msg);
+      speakReply(msg, lang);
+    };
+
+    window.onOverlayVoiceCommand = function(spokenText, activeApp) {
+      if (activeApp) window.setActiveAppContext(activeApp);
+      appendMessage('user', `🪟 [${activeApp || 'Overlay'}] ${spokenText}`);
+    };
 
     function formatWithNextTaskPrompt(rawText, langHint = '', skipPrompt = false) {
       const base = String(rawText || '').trim();
@@ -1718,6 +1818,10 @@
           card.className = 'action-card';
           card.innerHTML = `<span>⚡ ${act.label}</span><a class="action-btn" href="${act.url}" target="_blank">Execute Now</a>`;
           box.appendChild(card);
+          const inferredApp = String(act.label || '').replace(/^(?:Open|Navigate|Send)\s+/i, '').split(':')[0].trim();
+          if (inferredApp && !inferredApp.toLowerCase().startsWith('call ')) {
+            window.setActiveAppContext(inferredApp);
+          }
           if (act.auto_trigger) {
             window.lastExternalLaunchLabel = act.label || 'External App';
             setTimeout(() => {
@@ -1740,7 +1844,7 @@
       }
     }
 
-    // Screen Reader: Reads current screen content, latest assistant output, action cards & available buttons, then asks for the next command!
+    // Screen Reader: Reads current screen content, active external app context, latest assistant output & available commands, then asks for the next command!
     window.readCurrentScreenDom = function() {
       let nativeSummary = '';
       if (window.AndroidNative && window.AndroidNative.readScreenSummary) {
@@ -1768,6 +1872,7 @@
 
       return {
         nativeSummary,
+        activeApp: window.currentActiveAppContext || 'Aura Assistant',
         latestReply: latestReply.replace(/\s*(What command should I perform next\?|తర్వాత ఏం చేయమంటారు\?|अब अगला काम क्या करना है\?)\s*$/i, '').trim(),
         actionCards,
         quickChips
@@ -1780,18 +1885,36 @@
       const isTe = selLang === 'te-IN';
       const isHi = selLang === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
+      const activeApp = info.activeApp || 'Aura Assistant';
+      const appLow = activeApp.toLowerCase();
+
+      let appHintsEn = '';
+      let appHintsTe = '';
+      if (appLow.includes('insta')) {
+        appHintsEn = `Active App on Screen: ${activeApp}. You can say: "Open Reels", "Search <person/topic>", "Open Story Camera", or "Open Messages".`;
+        appHintsTe = `ప్రస్తుత యాప్: ${activeApp}. మీరు "Open Reels", "Search Prabhas", "Story Camera", లేదా "Messages" అని చెప్పవచ్చు.`;
+      } else if (appLow.includes('whatsapp')) {
+        appHintsEn = `Active App on Screen: WhatsApp. You can say: "Send <message> to <contact name>" or "Call <contact>".`;
+        appHintsTe = `ప్రస్తుత యాప్: WhatsApp. మీరు "<పేరు> కి <మెసేజ్> పంపు" అని చెప్పవచ్చు.`;
+      } else if (appLow.includes('youtube')) {
+        appHintsEn = `Active App on Screen: ${activeApp}. You can say: "Play <song/video>", "Open Shorts", or "Volume Up".`;
+        appHintsTe = `ప్రస్తుత యాప్: ${activeApp}. మీరు "Play <పాట పేరు>" లేదా "Open Shorts" అని చెప్పవచ్చు.`;
+      } else if (appLow.includes('map')) {
+        appHintsEn = `Active App on Screen: Google Maps. You can say: "Navigate to <place>" or "Search <place>".`;
+        appHintsTe = `ప్రస్తుత యాప్: Google Maps. మీరు "Navigate to <ప్రదేశం>" అని చెప్పవచ్చు.`;
+      }
 
       const actionNames = (info.actionCards.length > 0 ? info.actionCards : info.quickChips.slice(1, 5))
         .map((a, i) => `(${i + 1}) ${a.label}`)
         .join(', ');
 
       const msg = isTe
-        ? `📖 స్క్రీన్ రీడర్: ప్రస్తుతం స్క్రీన్ పై "${info.latestReply.slice(0, 120)}" ఉంది. అందుబాటులో ఉన్న ఆప్షన్లు: ${actionNames}. తర్వాత ఏం చేయమంటారు? తదుపరి కమాండ్ చెప్పండి.`
+        ? `📖 స్క్రీన్ రీడర్ (${activeApp}): ${appHintsTe || `ప్రస్తుతం స్క్రీన్ పై "${info.latestReply.slice(0, 100)}" ఉంది. ఆప్షన్లు: ${actionNames}.`} తర్వాత ఏం చేయమంటారు? తదుపరి కమాండ్ చెప్పండి.`
         : (isHi
-          ? `📖 स्क्रीन रीडर: अभी स्क्रीन पर "${info.latestReply.slice(0, 120)}" दिख रहा है। उपलब्ध विकल्प: ${actionNames}। अब अगला काम क्या करना है?`
-          : `📖 Screen Reader: On your screen right now — "${info.latestReply.slice(0, 120)}". Available actions: ${actionNames}. What command should I perform next?`);
+          ? `📖 स्क्रीन रीडर (${activeApp}): अभी स्क्रीन पर "${info.latestReply.slice(0, 100)}" दिख रहा है। विकल्प: ${actionNames}। अब अगला काम क्या करना है?`
+          : `📖 Screen Reader (${activeApp}): ${appHintsEn || `On your screen right now — "${info.latestReply.slice(0, 100)}". Available actions: ${actionNames}.`} What command should I perform next?`);
 
-      const phon = `Screen Reader active. On your screen: ${info.latestReply.slice(0, 90)}. What command should I perform next?`;
+      const phon = `Screen Reader active for ${activeApp}. ${appHintsEn || info.latestReply.slice(0, 80)}. What command should I perform next?`;
       appendMessage('aura', msg, [], null, true);
       speakReply(msg, lang, phon, true);
     };
@@ -1799,16 +1922,17 @@
     window.onReturnedFromExternalApp = function(taskName) {
       const cleanTask = String(taskName || window.lastExternalLaunchLabel || 'previous task').trim();
       window.lastExternalLaunchLabel = null;
+      const activeApp = window.currentActiveAppContext || cleanTask;
       const selLang = document.getElementById('voiceLang')?.value || 'en-IN';
       const isTe = selLang === 'te-IN';
       const isHi = selLang === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
 
       const msg = isTe
-        ? `✅ "${cleanTask}" పూర్తయింది! 📖 స్క్రీన్ రీడర్ సిద్ధంగా ఉంది — నేను విశ్రాంతి తీసుకోవడం లేదు. తర్వాత ఏం చేయమంటారు? తదుపరి కమాండ్ చెప్పండి!`
+        ? `✅ "${cleanTask}" పూర్తయింది (ప్రస్తుత స్క్రీన్: ${activeApp})! 📖 స్క్రీన్ రీడర్ సిద్ధంగా ఉంది — నేను విశ్రాంతి తీసుకోవడం లేదు. ${activeApp} లో ఇంకేమైనా చేయాలా లేక తదుపరి కమాండ్ ఏమిటి?`
         : (isHi
           ? `✅ "${cleanTask}" पूरा हो गया! 📖 स्क्रीन रीडर तैयार है। अब अगला काम क्या करना है? कमांड बताइए!`
-          : `✅ Completed "${cleanTask}"! 📖 Screen Reader is active and I am ready for your next instruction. What command should I perform next?`);
+          : `✅ Completed "${cleanTask}" (Active context: ${activeApp})! 📖 Screen Reader is active and ready. Give me another command for ${activeApp} or tell me what command I should perform next?`);
 
       appendMessage('aura', msg, [], null, true);
       speakReply(msg, lang, `Completed ${cleanTask}. What command should I perform next?`, true);
@@ -1876,11 +2000,13 @@
       }
 
       const reelsOpen = document.getElementById('reelsModal') && document.getElementById('reelsModal').style.display === 'flex';
+      const hasActiveExternalApp = (window.currentActiveAppContext && window.currentActiveAppContext.toLowerCase() !== 'aura assistant');
       const isCallIntent = /\b(call|phone|dial)\b/i.test(text) || /కాల్|ఫోన్|कॉल|கால்/.test(text);
       const isWaIntent = pendingWhatsAppStep !== null || /\b(whatsapp|vaatsap|whatsap)\b/i.test(text) || /వాట్సప్|వాట్సాప్|व्हाट्सएप|வாட்ஸ்அப்/.test(text);
       const isCompoundAppAction = /^(?:hey\s+aura\s+|aura\s+|please\s+)?(?:open|launch|start)\s+.+?\s+(?:and|then|mariyu|aur|మరియు|और)\s+/i.test(text);
-      const isScreenReaderIntent = /\b(read\s+screen|read\s+the\s+screen|screen\s+reader|what\s+is\s+on\s+screen|what's\s+on\s+screen|whats\s+on\s+screen|execute\s+that|first\s+option|second\s+option|relax|go\s+to\s+sleep|stop\s+listening)\b/i.test(text) || /స్క్రీన్\s*చదువు|స్క్రీన్\s*రీడర్|स्क्रीन\s*पढ़ो|स्क्रीन\s*रीडर/.test(text);
-      const isScrollOrSelectOrOpenApp = reelsOpen || isCompoundAppAction || isScreenReaderIntent || /\b(open|launch|start|instagram|insta|reel|reels|shorts|scroll|swipe|select|click|tap|choose|battery|volume|mute|timer|alarm)\b/i.test(text) || /ఓపెన్|తెరువు|ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|బ్యాటరీ|चुनो|क्लिक/.test(text);
+      const isScreenReaderIntent = /\b(read\s+screen|read\s+the\s+screen|screen\s+reader|what\s+is\s+on\s+screen|what's\s+on\s+screen|whats\s+on\s+screen|display\s+over\s+other\s+apps|floating\s+overlay|execute\s+that|first\s+option|second\s+option|relax|go\s+to\s+sleep|stop\s+listening)\b/i.test(text) || /స్క్రీన్\s*చదువు|స్క్రీన్\s*రీడర్|स्क्रीन\s*पढ़ो|स्क्रीन\s*रीडर/.test(text);
+      const isContextualActiveAppCmd = hasActiveExternalApp && /\b(search|find|show|play|watch|reels|shorts|story|camera|messages|dm|direct|navigate|go\s+to|directions\s+to|send|message)\b/i.test(text);
+      const isScrollOrSelectOrOpenApp = reelsOpen || isCompoundAppAction || isScreenReaderIntent || isContextualActiveAppCmd || /\b(open|launch|start|instagram|insta|reel|reels|shorts|scroll|swipe|select|click|tap|choose|battery|volume|mute|timer|alarm)\b/i.test(text) || /ఓపెన్|తెరువు|ఇన్‌స్టా|ఇన్స్టా|రీల్|రీల్స్|స్క్రోల్|సెలెక్ట్|క్లిక్|నొక్కు|బ్యాటరీ|चुनो|क्लिक/.test(text);
 
       if ((isCallIntent || isWaIntent || isScrollOrSelectOrOpenApp) && (window.AndroidNative || isScrollOrSelectOrOpenApp || isWaIntent || (window.realPhoneContacts && window.realPhoneContacts.length > 0))) {
         await runStandaloneApkBrain(text);
@@ -1924,6 +2050,12 @@
       const isHi = hasHiScript || /\b(ko|karo|kardo|mein|batao|suvichar|kya|hai|kaun|bhejo|padho)\b/.test(lower) || document.getElementById('voiceLang').value === 'hi-IN';
       const lang = isTe ? 'te' : (isHi ? 'hi' : 'en');
 
+      // Display Over Other Apps / Floating Overlay voice command
+      if (/\b(display\s+over\s+other\s+apps|floating\s+overlay|float\s+over\s+apps|enable\s+overlay)\b/.test(lower)) {
+        window.enableFloatingDisplayOverApps();
+        return;
+      }
+
       // Explicit Stop / Relax / Sleep command (only time Aura pauses auto-listening)
       if (/\b(relax|go to sleep|stop listening|nothing else|that's all|thats all)\b/.test(lower) || /రిలాక్స్|చాలు|ఇంకేం వద్దు|बस करो/.test(text)) {
         pendingWhatsAppStep = null;
@@ -1941,6 +2073,61 @@
       if (/\b(read\s+screen|read\s+the\s+screen|screen\s+reader|what\s+is\s+on\s+screen|what's\s+on\s+screen|whats\s+on\s+screen|what\s+is\s+on\s+my\s+screen)\b/.test(lower) || /స్క్రీన్\s*చదువు|స్క్రీన్\s*రీడర్|స్క్రీన్\s*పై\s*ఏముంది|स्क्रीन\s*पढ़ो|स्क्रीन\s*रीडर/.test(text)) {
         window.triggerScreenReaderAndContinue();
         return;
+      }
+
+      // Contextual Active Foreground App Command Execution (when user is currently inside Instagram, YouTube, Maps, WhatsApp, etc. and gives an in-app command!)
+      const activeAppLow = String(window.currentActiveAppContext || '').toLowerCase();
+      if (activeAppLow && activeAppLow !== 'aura assistant' && !/\b(whatsapp|youtube|instagram|insta|maps|spotify|amazon|flipkart|call|phone|battery|time|date|torch)\b/i.test(lower)) {
+        if (activeAppLow.includes('insta')) {
+          if (/\b(story|camera)\b/i.test(lower)) {
+            if (window.AndroidNative && window.AndroidNative.openApp) window.AndroidNative.openApp('instagram story');
+            const msg = isTe ? '📸 Instagram స్టోరీ కెమెరా తెరుస్తున్నాను.' : '📸 Opening Instagram Story Camera.';
+            appendMessage('aura', msg, [{ label: 'Instagram Story Camera', url: 'https://www.instagram.com/', auto_trigger: !window.AndroidNative }]);
+            speakReply(msg, lang, 'Opening Instagram Story Camera');
+            return;
+          }
+          if (/\b(message|messages|dm|direct|inbox|chat)\b/i.test(lower)) {
+            const dmUrl = 'https://www.instagram.com/direct/inbox/';
+            const msg = isTe ? '📸 Instagram మెసేజెస్ (DM) తెరుస్తున్నాను.' : '📸 Opening Instagram Direct Messages.';
+            appendMessage('aura', msg, [{ label: 'Instagram Messages', url: dmUrl, auto_trigger: true }]);
+            speakReply(msg, lang, 'Opening Instagram Direct Messages');
+            return;
+          }
+          const inAppSearch = text.match(/^(?:search\s+for|search|find|show|open\s+profile|profile|look\s+for)\s+(.+)$/i);
+          if (inAppSearch) {
+            const q = inAppSearch[1].trim();
+            if (window.AndroidNative && window.AndroidNative.openAppWithQuery) window.AndroidNative.openAppWithQuery('instagram', q);
+            const instaUrl = q.includes(' ')
+              ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(q)}`
+              : `https://www.instagram.com/${encodeURIComponent(q.replace(/^@/, ''))}/`;
+            const msg = isTe ? `📸 Instagram లో "${q}" తెరుస్తున్నాను.` : `📸 Searching "${q}" in Instagram.`;
+            appendMessage('aura', msg, [{ label: `Instagram: ${q}`, url: instaUrl, auto_trigger: !window.AndroidNative }]);
+            speakReply(msg, lang, `Searching ${q} in Instagram`);
+            return;
+          }
+        } else if (activeAppLow.includes('youtube')) {
+          const ytPlayMatch = text.match(/^(?:play|search\s+for|search|find|watch|show)\s+(.+)$/i);
+          if (ytPlayMatch) {
+            const q = ytPlayMatch[1].trim();
+            if (window.AndroidNative && window.AndroidNative.openYouTube) window.AndroidNative.openYouTube(q);
+            const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+            const msg = isTe ? `🎵 YouTube లో "${q}" ప్లే చేస్తున్నాను.` : `🎵 Playing "${q}" in YouTube.`;
+            appendMessage('aura', msg, [{ label: `YouTube: ${q}`, url: ytUrl, auto_trigger: !window.AndroidNative }]);
+            speakReply(msg, lang, `Playing ${q} in YouTube`);
+            return;
+          }
+        } else if (activeAppLow.includes('map')) {
+          const mapNavMatch = text.match(/^(?:navigate\s+to|go\s+to|directions\s+to|search\s+for|search|find)\s+(.+)$/i);
+          if (mapNavMatch) {
+            const dest = mapNavMatch[1].trim();
+            if (window.AndroidNative && window.AndroidNative.navigateMaps) window.AndroidNative.navigateMaps(dest);
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest)}`;
+            const msg = isTe ? `🗺️ Google Maps లో "${dest}" కి నావిగేట్ చేస్తున్నాను.` : `🗺️ Navigating to "${dest}" in Google Maps.`;
+            appendMessage('aura', msg, [{ label: `Maps: ${dest}`, url: mapUrl, auto_trigger: !window.AndroidNative }]);
+            speakReply(msg, lang, `Navigating to ${dest}`);
+            return;
+          }
+        }
       }
 
       // Contextual Screen Reader Follow-up ("execute that", "first option", "second option")

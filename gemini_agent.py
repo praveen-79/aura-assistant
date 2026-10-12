@@ -733,18 +733,35 @@ class AuraGeminiAgent:
         self.preferred_language: str = "auto"
         # Stores multi-turn slot-filling state when the owner says an incomplete command
         self.pending_intent: Optional[Dict[str, Any]] = None
+        # Tracks the currently active foreground app when Aura displays over other apps
+        self.active_foreground_app: str = "Aura Assistant"
 
     def set_api_key(self, api_key: str) -> None:
         self.api_key = api_key.strip()
         os.environ["GEMINI_API_KEY"] = self.api_key
         self.previous_interaction_id = None
 
-    @staticmethod
-    def _finalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _finalize_response(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Attaches clean spoken_reply (no raw phone digits), spoken_phonetic (Romanized Indic fallback),
-        and ensures Aura NEVER relaxes after completing a task — always asking for the next command.
+        tracks the active foreground app on screen, and ensures Aura NEVER relaxes after completing a task.
         """
+        for t in payload.get("executed_tools") or []:
+            tname = t.get("name", "")
+            targs = t.get("args") or {}
+            tres = t.get("result") or {}
+            if tname in ("open_android_app", "open_app_with_query"):
+                app_lbl = tres.get("app_name") or targs.get("app_name")
+                if app_lbl:
+                    self.active_foreground_app = str(app_lbl).title()
+            elif tname == "play_youtube_media":
+                self.active_foreground_app = "YouTube"
+            elif tname == "navigate_to_location":
+                self.active_foreground_app = "Google Maps"
+            elif tname == "send_whatsapp_message":
+                self.active_foreground_app = "WhatsApp"
+
+        payload["active_app"] = self.active_foreground_app
         reply_text = payload.get("reply", "").strip()
         lang = payload.get("detected_language", "en")
         next_prompts = {
@@ -1748,17 +1765,29 @@ class AuraGeminiAgent:
             and "image" not in lower
         ):
             res = self.automation.read_screen_elements()
+            res["active_app"] = self.active_foreground_app
             executed_tools.append({"name": "read_screen_elements", "args": {}, "result": res})
             elements = res.get("elements") or []
             labels = [e.get("text") or e.get("content_desc") for e in elements if (e.get("text") or e.get("content_desc"))]
-            top_labels = ", ".join(labels[:6]) if labels else "Aura Voice Orb, Quick Action Chips, Contacts & Permissions"
+            active_app = self.active_foreground_app or "Aura Assistant"
+            app_low = active_app.lower()
+            if "insta" in app_low:
+                app_actions = "Open Reels, Search <name/topic>, Open Direct Messages, Open Story Camera"
+            elif "whatsapp" in app_low:
+                app_actions = "Send message to <contact>, Call <contact>"
+            elif "youtube" in app_low:
+                app_actions = "Play <song/video>, Open Shorts, Volume Up/Down"
+            elif "map" in app_low:
+                app_actions = "Navigate to <destination>"
+            else:
+                app_actions = ", ".join(labels[:6]) if labels else "Open Instagram, Open WhatsApp, Open YouTube, Call Contact"
             reply_msg = (
-                f"📖 స్క్రీన్ రీడర్: ప్రస్తుతం స్క్రీన్ పై '{top_labels}' కనిపిస్తున్నాయి."
+                f"📖 స్క్రీన్ రీడర్ ({active_app}): ప్రస్తుతం మీరు {active_app} స్క్రీన్ పై ఉన్నారు. ఇక్కడ చేయగల పనులు: {app_actions}."
                 if lang == "te"
                 else (
-                    f"📖 स्क्रीन रीडर: अभी स्क्रीन पर '{top_labels}' दिख रहे हैं।"
+                    f"📖 स्क्रीन रीडर ({active_app}): अभी आप {active_app} स्क्रीन पर हैं। उपलब्ध कमांड: {app_actions}।"
                     if lang == "hi"
-                    else f"📖 Screen Reader: Currently visible on screen — {top_labels}."
+                    else f"📖 Screen Reader ({active_app}): Currently active on {active_app} screen — Available commands: {app_actions}."
                 )
             )
             return self._finalize_response({
@@ -1770,6 +1799,33 @@ class AuraGeminiAgent:
                 "executed_tools": executed_tools,
                 "client_actions": client_actions,
             })
+
+        # 6c. Contextual Command in Active Foreground App (when another app like Instagram/YouTube/Maps is open on screen)
+        active_low = (self.active_foreground_app or "").lower()
+        if active_low and active_low != "aura assistant":
+            ctx_search = re.match(
+                r"^(?:search\s+for|search|find|show|look\s+for|profile)\s+(.+)$",
+                lower,
+            )
+            if ctx_search and ("insta" in active_low or "youtube" in active_low or "amazon" in active_low or "flipkart" in active_low or "spotify" in active_low):
+                q_val = ctx_search.group(1).strip()
+                res = self.automation.open_app_with_query(self.active_foreground_app, q_val)
+                executed_tools.append({
+                    "name": "open_app_with_query",
+                    "args": {"app_name": self.active_foreground_app, "query": q_val},
+                    "result": res,
+                })
+                if res.get("client_action"):
+                    client_actions.append(res["client_action"])
+                return self._finalize_response({
+                    "status": "ok",
+                    "mode": "offline_smart_engine",
+                    "normalized_input": text,
+                    "detected_language": lang,
+                    "reply": f"🔍 Searching for '{q_val}' in {self.active_foreground_app}.",
+                    "executed_tools": executed_tools,
+                    "client_actions": client_actions,
+                })
 
         # 7. Screen Tap / Select ("tap Send", "select Telugu", "click Contacts", "Telugu select chey", "తెలుగు సెలెక్ట్ చేయి")
         tap_patterns = [
