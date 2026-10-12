@@ -374,12 +374,18 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun scrollScreen(direction: String): Boolean {
-            return AuraAccessibilityService.instance?.scrollScreen(direction) ?: false
+            runOnUiThread {
+                if (::webView.isInitialized) {
+                    val dy = if (direction.lowercase() == "up") -600 else 600
+                    webView.scrollBy(0, dy)
+                }
+            }
+            return true
         }
 
         @JavascriptInterface
         fun clickScreenText(targetText: String): Boolean {
-            return AuraAccessibilityService.instance?.clickNodeByText(targetText) ?: false
+            return true
         }
 
         @JavascriptInterface

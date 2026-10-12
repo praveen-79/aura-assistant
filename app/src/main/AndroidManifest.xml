@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Voice, Contacts, Calling, Alarm, Camera & App Discovery Permissions -->
+    <!-- Play Protect EFP-Compliant Runtime Permissions:
+         Asks user at runtime for Mic, Real Phone Contacts, Phone Calls, Camera & Alarms.
+         Does NOT declare EFP-blacklisted SMS/NotificationListener/Accessibility services. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
@@ -10,9 +11,6 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
-    <uses-permission
-        android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Android 11+ Package Visibility for launching WhatsApp, YouTube, Maps, Dialer & Installed Apps -->
     <queries>
@@ -38,6 +36,8 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
         android:label="Aura AI Assistant"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
@@ -90,20 +90,6 @@
                 <action android:name="android.speech.RecognitionService" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </service>
-
-        <!-- Native Accessibility Service for Hands-Free Screen Scrolling & Cross-App UI Actions -->
-        <service
-            android:name=".AuraAccessibilityService"
-            android:exported="true"
-            android:label="Aura AI Hands-Free Assistant"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>
