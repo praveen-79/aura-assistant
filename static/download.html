@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aura AI Assistant APK Download (v1.0.0) — Official Multilingual Android App</title>
-  <link rel="icon" href="/static/icon-192.svg" type="image/svg+xml" />
+  <link rel="icon" href="./static/icon-192.svg" type="image/svg+xml" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -246,17 +246,17 @@
     </div>
 
     <!-- Primary Direct Android APK Download Button -->
-    <a href="/download/AuraAssistant.apk" download="AuraAssistant.apk" class="btn btn-install" id="primaryApkBtn">
+    <a href="./AuraAssistant.apk" download="AuraAssistant.apk" class="btn btn-install" id="primaryApkBtn">
       ⬇ Download APK v1.0.0 (AuraAssistant.apk)
     </a>
 
-    <!-- Direct Mirror Download Button -->
-    <a href="./AuraAssistant.apk" download="AuraAssistant.apk" class="btn btn-secondary">
-      📦 Direct Mirror Download (AuraAssistant.apk)
+    <!-- Direct GitHub Mirror Download Button -->
+    <a href="https://github.com/praveen-79/aura-assistant/raw/main/AuraAssistant.apk" download="AuraAssistant.apk" class="btn btn-secondary">
+      📦 GitHub Raw Mirror (AuraAssistant.apk)
     </a>
 
     <!-- Launch Web App / Live Voice Experience -->
-    <a href="/" class="btn btn-open">
+    <a href="./static/index.html" class="btn btn-open">
       ▶ Open Web App & Live Voice Orb (Instant Access)
     </a>
 
@@ -279,7 +279,7 @@
 
     <div class="qr-box">
       <div>📱 Scan QR with Phone Camera to Download <strong>AuraAssistant.apk</strong> Directly:</div>
-      <img id="qrImg" alt="Download QR Code" src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=http://192.168.1.30:8000/download/AuraAssistant.apk" />
+      <img id="qrImg" alt="Download QR Code" src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://github.com/praveen-79/aura-assistant/raw/main/AuraAssistant.apk" />
     </div>
 
     <div class="footer-note">
@@ -289,8 +289,8 @@
 
   <script>
     // Dynamically configure QR code and download links for localhost or GitHub Pages
-    let apkUrl = `${window.location.origin}/download/AuraAssistant.apk`;
-    if (window.location.hostname.includes('github.io') || window.location.protocol === 'file:') {
+    let apkUrl = './AuraAssistant.apk';
+    if (window.location.protocol.startsWith('http')) {
       apkUrl = new URL('AuraAssistant.apk', window.location.href).href;
     }
     const qrEl = document.getElementById('qrImg');
