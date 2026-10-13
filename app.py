@@ -108,18 +108,20 @@ async def download_page():
 
 @app.api_route("/download-apk", methods=["GET", "HEAD"])
 @app.api_route("/download/AuraAssistant.apk", methods=["GET", "HEAD"])
+@app.api_route("/download/AuraAssistant-v4.apk", methods=["GET", "HEAD"])
 @app.api_route("/download/AuraAssistant-v3.apk", methods=["GET", "HEAD"])
 async def download_apk():
     apk_candidates = [
-        BASE_DIR / "AuraAssistant-v3.apk",
+        BASE_DIR / "AuraAssistant-v4.apk",
         BASE_DIR / "AuraAssistant.apk",
+        BASE_DIR / "AuraAssistant-v3.apk",
         BASE_DIR / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk",
     ]
     for candidate in apk_candidates:
         if candidate.exists():
             return FileResponse(
                 path=str(candidate),
-                filename="AuraAssistant-v3.apk",
+                filename="AuraAssistant-v4.apk",
                 media_type="application/vnd.android.package-archive",
             )
     return JSONResponse(
