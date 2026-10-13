@@ -208,6 +208,23 @@ class MainActivity : AppCompatActivity() {
 
         val bridge = AndroidNativeBridge()
 
+        // 0. Dual / Compound Command Splitting ("Open Instagram and search for cars")
+        val delimiters = listOf(
+            Regex("(?i)\\s+(?:and\\s+then|and|then|after\\s+that)\\s+"),
+            Regex("\\s+(?:చేసి|మరియు\\s+తర్వాత|మరియు|తర్వాత|తరువాత)\\s+"),
+            Regex("(?i)\\s+(?:aur\\s+phir|aur|ke\\s+baad)\\s+")
+        )
+        for (del in delimiters) {
+            val parts = text.split(del, limit = 2)
+            if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
+                val step1 = parts[0].trim()
+                val step2 = parts[1].trim()
+                AuraFloatingOverlayService.pendingSecondCommand = step2
+                val reply1 = executeVoiceCommandFromOverlay(step1, activeApp)
+                return "$reply1 (Step 2: \"$step2\" queued — call 'Hey Aura' to run)"
+            }
+        }
+
         // 1. Contextual commands when Instagram is on screen (or when command mentions Instagram/Reels)
         if ("insta" in activeKey || "insta" in lower || "reel" in lower || "రీల్" in text || "रील" in text) {
             if ("reel" in lower || "next" in lower || "scroll" in lower || "రీల్" in text) {
