@@ -107,5 +107,19 @@
             </intent-filter>
         </service>
 
+        <!-- Aura Accessibility Service for Screen Reading and Autonomous UI Navigation -->
+        <service
+            android:name=".AuraAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:label="Aura Screen Reader &amp; Automation Service">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
     </application>
 </manifest>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Aura AI Assistant</string>
+    <string name="accessibility_service_description">Enables Aura Assistant to inspect visible screen elements, execute hands-free search actions, and read search/chat results on your voice command.</string>
+    <string name="aura_accessibility_service_description">Allows Aura Assistant to read screen content, search results, and interact with app buttons on your voice command.</string>
+</resources>
