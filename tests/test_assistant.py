@@ -498,19 +498,41 @@ def test_screen_reader_and_continuous_next_task_loop(tmp_path: Path):
     assert sr_te.get("ask_next_task") is True
     assert "తర్వాత ఏం చేయమంటారు" in sr_te["reply"]
 
-    # 3. Any completed task must ask for the next command and never relax
+    # 3. Standard completed tasks take a break into Standby Mode to prevent disturbing continuous talkback!
     done_res = agent.chat_with_tools("open instagram")
-    assert done_res.get("ask_next_task") is True
-    assert "what command should i perform next" in done_res["reply"].lower()
+    assert done_res.get("take_break") is True
+    assert done_res.get("ask_next_task") is False
+    assert "what command should i perform next" not in done_res["reply"].lower()
 
-    # 4. Chained command with Screen Reader ("scroll down and read screen")
+    # 4. Keep Quiet command: immediately silences Aura and takes a break
+    quiet_res = agent.chat_with_tools("keep quiet")
+    assert quiet_res.get("keep_quiet") is True
+    assert quiet_res.get("take_break") is True
+    assert "hey aura" in quiet_res["reply"].lower()
+
+    quiet_te = agent.chat_with_tools("మాట్లాడకు", language_hint="te-IN")
+    assert quiet_te.get("keep_quiet") is True
+    assert quiet_te.get("take_break") is True
+    assert "ఆరా" in quiet_te["reply"]
+
+    # 5. Wake Word command: calls Aura back from Standby Mode
+    wake_res = agent.chat_with_tools("Hey Aura")
+    assert wake_res.get("wake_detected") is True
+    assert wake_res.get("take_break") is False
+
+    wake_te = agent.chat_with_tools("ఆరా", language_hint="te-IN")
+    assert wake_te.get("wake_detected") is True
+    assert wake_te.get("take_break") is False
+    assert "చెప్పండి" in wake_te["reply"]
+
+    # 6. Chained command with Screen Reader ("scroll down and read screen")
     chain_sr = agent.chat_with_tools("scroll down and read screen")
     names = [t["name"] for t in chain_sr["executed_tools"]]
     assert "scroll_screen" in names
     assert "read_screen_elements" in names
     assert chain_sr.get("ask_next_task") is True
 
-    # 5. Cross-App Active Screen Context: after opening Instagram, Screen Reader & contextual commands target Instagram!
+    # 7. Cross-App Active Screen Context: after opening Instagram, Screen Reader & contextual commands target Instagram!
     agent.chat_with_tools("open instagram")
     assert agent.active_foreground_app.lower() == "instagram"
 
@@ -522,6 +544,7 @@ def test_screen_reader_and_continuous_next_task_loop(tmp_path: Path):
         t["name"] == "open_app_with_query" and t["args"]["query"] == "prabhas"
         for t in in_app_cmd["executed_tools"]
     )
-    assert in_app_cmd.get("ask_next_task") is True
+    assert in_app_cmd.get("take_break") is True
+
 
 

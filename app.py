@@ -177,34 +177,68 @@ async def tts_endpoint(text: str, lang: str = "te"):
     """
     Synthesizes native multilingual speech audio (Telugu 'te', Tamil 'ta', Hindi 'hi',
     Bengali 'bn', Marathi 'mr', Spanish 'es', English 'en') and caches MP3 files locally
-    in `tts_cache/` so subsequent or offline replays work even on Windows PCs without
-    an installed OS Telugu/Tamil SAPI5 voice pack.
+    in `tts_cache/`. Automatically forces 'te' when Telugu script is present.
     """
-    spoken_text = clean_text_for_tts(text)[:200]
-    tl = lang.split("-")[0].lower() if lang else "te"
-    if tl not in {"te", "ta", "hi", "bn", "mr", "es", "en", "kn", "ml"}:
-        tl = "en"
+    import re
+    cleaned = clean_text_for_tts(text)
+    if not cleaned:
+        cleaned = "సరే"
 
-    cache_key = hashlib.md5(f"{tl}:{spoken_text}".encode("utf-8")).hexdigest()
+    # Auto-detect language family from script characters
+    if re.search(r"[\u0C00-\u0C7F]", cleaned):
+        tl = "te"
+    elif re.search(r"[\u0900-\u097F]", cleaned):
+        tl = "hi"
+    elif re.search(r"[\u0B80-\u0BFF]", cleaned):
+        tl = "ta"
+    else:
+        tl = lang.split("-")[0].lower() if lang else "te"
+        if tl not in {"te", "ta", "hi", "bn", "mr", "es", "en", "kn", "ml"}:
+            tl = "en"
+
+    cache_key = hashlib.md5(f"{tl}:{cleaned}".encode("utf-8")).hexdigest()
     cache_path = TTS_CACHE_DIR / f"{cache_key}.mp3"
 
     if cache_path.exists() and cache_path.stat().st_size > 100:
         return Response(content=cache_path.read_bytes(), media_type="audio/mpeg")
 
+    # Split into chunks of <= 160 characters so Google TTS never times out or errors
+    sentences = re.split(r"(?<=[.!?।\n])\s+", cleaned)
+    chunks = []
+    curr = ""
+    for s in sentences:
+        if len(curr) + len(s) + 1 <= 160:
+            curr = f"{curr} {s}".strip()
+        else:
+            if curr:
+                chunks.append(curr)
+            curr = s[:160]
+    if curr:
+        chunks.append(curr)
+    if not chunks:
+        chunks = [cleaned[:160]]
+
+    combined_bytes = bytearray()
     try:
-        async with httpx.AsyncClient(timeout=4.5) as client:
-            resp = await client.get(
-                "https://translate.googleapis.com/translate_tts",
-                params={"ie": "UTF-8", "client": "gtx", "tl": tl, "q": spoken_text},
-                headers={"User-Agent": "Mozilla/5.0"},
-            )
-            if resp.status_code == 200 and len(resp.content) > 100:
-                cache_path.write_bytes(resp.content)
-                return Response(content=resp.content, media_type="audio/mpeg")
+        async with httpx.AsyncClient(timeout=7.0) as client:
+            for chunk in chunks:
+                if not chunk.strip():
+                    continue
+                resp = await client.get(
+                    "https://translate.googleapis.com/translate_tts",
+                    params={"ie": "UTF-8", "client": "gtx", "tl": tl, "q": chunk.strip()},
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                )
+                if resp.status_code == 200 and len(resp.content) > 100:
+                    combined_bytes.extend(resp.content)
+
+        if len(combined_bytes) > 100:
+            cache_path.write_bytes(bytes(combined_bytes))
+            return Response(content=bytes(combined_bytes), media_type="audio/mpeg")
     except Exception:
         pass
 
-    return JSONResponse({"status": "fallback_required", "lang": tl, "text": spoken_text}, status_code=404)
+    return JSONResponse({"status": "fallback_required", "lang": tl, "text": cleaned}, status_code=404)
 
 
 

@@ -127,9 +127,15 @@ def transliterate_indic_to_latin(text: str) -> str:
 
 
 def clean_text_for_tts(text: str) -> str:
-    """Strips parenthetical phone numbers (+91...) and English relationship tags like (Mom) so TTS speaks naturally."""
+    """Strips parenthetical phone numbers, emojis, symbols, and Markdown so TTS engine speaks naturally without failure."""
     cleaned = re.sub(r"\(\s*\+?\d[\d\s-]{5,}\s*\)", "", text)
     cleaned = re.sub(r"\(\s*(?:Mom|Dad|Brother|Sister|Aura)\s*\)", "", cleaned, flags=re.IGNORECASE)
+    # Strip URLs
+    cleaned = re.sub(r"https?://\S+|whatsapp://\S+", "", cleaned)
+    # Strip emojis and decorative symbols
+    cleaned = re.sub(r"[\U00010000-\U0010ffff]", "", cleaned)
+    cleaned = re.sub(r"[\u2600-\u27BF\u2B50-\u2B55\u200D\uFE0F]", "", cleaned)
+    cleaned = re.sub(r"[⚡✅📖🪟📸💬🔋🔊⏲⏰🔦🎵🗺🚀🤖🌸📘🧮•*`_#~]", "", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 

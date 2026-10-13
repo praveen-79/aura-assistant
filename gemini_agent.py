@@ -764,28 +764,35 @@ class AuraGeminiAgent:
         payload["active_app"] = self.active_foreground_app
         reply_text = payload.get("reply", "").strip()
         lang = payload.get("detected_language", "en")
-        next_prompts = {
-            "te": "తర్వాత ఏం చేయమంటారు?",
-            "hi": "अब अगला काम क्या करना है?",
-            "ta": "அடுத்து என்ன செய்ய வேண்டும்?",
-            "en": "What command should I perform next?",
-        }
-        next_q = next_prompts.get(lang, next_prompts["en"])
-        if (
-            reply_text
-            and not reply_text.endswith("?")
-            and not payload.get("is_default_fallback")
-            and next_q not in reply_text
-        ):
-            reply_text = f"{reply_text} {next_q}"
-            payload["reply"] = reply_text
+
+        # In v4: When Screen Reader is explicitly invoked, prompt for the next command.
+        # For ALL other tasks, Aura TAKES A BREAK after satisfying the command, avoiding continuous disturbing talkback!
+        has_sr_tool = any(t.get("name") == "read_screen_elements" for t in payload.get("executed_tools", []))
+        if payload.get("wake_detected"):
+            payload["take_break"] = False
+            payload["ask_next_task"] = True
+        elif payload.get("is_screen_reader_query") or has_sr_tool:
+            next_prompts = {
+                "te": "తర్వాత ఏం చేయమంటారు? తదుపరి కమాండ్ చెప్పండి.",
+                "hi": "अब अगला काम क्या करना है? कमांड बताइए.",
+                "ta": "அடுத்து என்ன செய்ய வேண்டும்?",
+                "en": "What command should I perform next?",
+            }
+            next_q = next_prompts.get(lang, next_prompts["en"])
+            if not reply_text.endswith("?") and next_q not in reply_text:
+                reply_text = f"{reply_text} {next_q}"
+                payload["reply"] = reply_text
+            payload["ask_next_task"] = True
+            payload["take_break"] = False
+        else:
+            payload["take_break"] = True
+            payload["ask_next_task"] = False
 
         spoken = clean_text_for_tts(reply_text)
         phonetic = clean_text_for_tts(transliterate_indic_to_latin(spoken))
         phonetic = re.sub(r"\s+", " ", phonetic).strip()
         payload["spoken_reply"] = spoken
         payload["spoken_phonetic"] = phonetic
-        payload["ask_next_task"] = True
         return payload
 
     def execute_tool(self, name: str, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -1091,6 +1098,64 @@ class AuraGeminiAgent:
                     "executed_tools": executed_tools,
                     "client_actions": client_actions,
                 })
+
+        # 0. Keep Quiet / Take a Break Intent ("keep quiet", "be quiet", "shut up", "stop talking", "మాట్లాడకు", "నోరు మూసుకో", "ఆగు", "శాంతంగా ఉండు", "చాలు", "शांत रहो", "चुप रहो")
+        is_keep_quiet = any(
+            re.search(rf"\b{w}\b", lower)
+            for w in [
+                "keep quiet", "be quiet", "quiet", "shut up", "stop talking", "silent",
+                "silence", "hush", "stop speaking", "take a break", "break", "pause",
+                "stay quiet", "dont speak", "don't speak", "maatladaku", "matladaku",
+                "noru moosuko", "noru mooyi", "aagu", "aapu", "chalu", "shanthanga undu",
+                "shantham", "chup raho", "chup", "shant raho", "mat bolo"
+            ]
+        ) or any(w in text for w in [
+            "మాట్లాడకు", "నోరు మూసుకో", "నోరు మూయి", "ఆగు", "శాంతంగా ఉండు", "శాంతం", "నిశ్శబ్దంగా ఉండు", "చాలు", "వద్దు",
+            "शांत रहो", "चुप रहो", "चुप", "मत बोलो"
+        ])
+        if is_keep_quiet:
+            quiet_replies = {
+                "te": "🤫 సరే, మాట్లాడటం ఆపాను. మీకు అవసరమైనప్పుడు 'Hey Aura' లేదా 'ఆరా' అని పిలవండి.",
+                "hi": "🤫 ठीक है, मैं चुप हो गई हूँ। जब भी ज़रूरत हो, 'Hey Aura' कहकर बुलाएं।",
+                "ta": "🤫 சரி, அமைதியாக இருக்கிறேன். தேவைப்படும்போது 'Hey Aura' என்று அழையுங்கள்.",
+                "en": "🤫 Keeping quiet. Standing by — call 'Hey Aura' whenever you need me.",
+            }
+            return self._finalize_response({
+                "status": "ok",
+                "mode": "offline_smart_engine",
+                "normalized_input": text,
+                "detected_language": lang,
+                "reply": quiet_replies.get(lang, quiet_replies["en"]),
+                "keep_quiet": True,
+                "take_break": True,
+                "executed_tools": [],
+                "client_actions": [],
+            })
+
+        # 0b. Wake Word Calling ("hey aura", "aura", "hello aura", "హే ఆరా", "ఆరా", "ఓకే ఆరా", "हे ऑरा", "ऑरा")
+        is_pure_wake = bool(re.match(
+            r"^(?:hey\s+aura|aura|hello\s+aura|hi\s+aura|ok\s+aura|హే\s*ఆరా|ఆరా|హలో\s*ఆరా|ఓకే\s*ఆరా|हे\s*ऑरा|ऑरा)$",
+            text.strip(),
+            flags=re.IGNORECASE,
+        ))
+        if is_pure_wake:
+            wake_replies = {
+                "te": "🎙️ చెప్పండి, నేను వింటున్నాను! మీకు ఏమి సహాయం కావాలి?",
+                "hi": "🎙️ हाँ, मैं सुन रही हूँ! बताइए क्या काम है?",
+                "ta": "🎙️ சொல்லுங்கள், நான் கேட்கிறேன்! என்ன செய்ய வேண்டும்?",
+                "en": "🎙️ Yes, I'm listening! What can I do for you?",
+            }
+            return self._finalize_response({
+                "status": "ok",
+                "mode": "offline_smart_engine",
+                "normalized_input": text,
+                "detected_language": lang,
+                "reply": wake_replies.get(lang, wake_replies["en"]),
+                "wake_detected": True,
+                "take_break": False,
+                "executed_tools": [],
+                "client_actions": [],
+            })
 
         # 0a. Strict Privacy Guardrail: Never touch UPI or payment apps (PhonePe, GPay, Paytm, BHIM)
         if any(
@@ -1793,6 +1858,7 @@ class AuraGeminiAgent:
             return self._finalize_response({
                 "status": "ok",
                 "mode": "offline_smart_engine",
+                "is_screen_reader_query": True,
                 "normalized_input": text,
                 "detected_language": lang,
                 "reply": reply_msg,
